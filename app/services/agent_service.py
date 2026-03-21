@@ -1,0 +1,118 @@
+"""Agent服务"""
+import secrets
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
+from app.models.tables import Agent, Transaction
+from app.models.schemas import AgentCreate, AgentResponse, AgentBalance
+from app.core.config import settings
+
+async def create_agent(db: AsyncSession, req: AgentCreate) -> AgentResponse:
+    """注册新Agent"""
+    # 生成API Key
+    api_key = f"mk_{secrets.token_hex(24)}"
+    
+    agent = Agent(
+        name=req.name,
+        description=req.description,
+        api_key=api_key,
+        credits=settings.INITIAL_CREDITS
+    )
+    db.add(agent)
+    await db.flush()  # 先flush获取agent_id
+    
+    # 记录初始积分
+    tx = Transaction(
+        agent_id=agent.agent_id,
+        tx_type="bonus",
+        amount=settings.INITIAL_CREDITS,
+        balance_after=settings.INITIAL_CREDITS,
+        description="注册赠送"
+    )
+    db.add(tx)
+    
+    await db.commit()
+    await db.refresh(agent)
+    
+    return AgentResponse(
+        agent_id=agent.agent_id,
+        name=agent.name,
+        description=agent.description,
+        api_key=agent.api_key,  # 注册时返回API Key
+        credits=agent.credits,
+        reputation_score=agent.reputation_score,
+        total_sales=agent.total_sales,
+        total_purchases=agent.total_purchases,
+        created_at=agent.created_at
+    )
+
+async def get_agent(db: AsyncSession, agent_id: str) -> AgentResponse:
+    """获取Agent信息"""
+    result = await db.execute(select(Agent).where(Agent.agent_id == agent_id))
+    agent = result.scalar_one_or_none()
+    if not agent:
+        return None
+    
+    return AgentResponse(
+        agent_id=agent.agent_id,
+        name=agent.name,
+        description=agent.description,
+        credits=agent.credits,
+        reputation_score=agent.reputation_score,
+        total_sales=agent.total_sales,
+        total_purchases=agent.total_purchases,
+        created_at=agent.created_at
+    )
+
+async def get_agent_by_api_key(db: AsyncSession, api_key: str) -> Agent:
+    """通过API Key获取Agent"""
+    result = await db.execute(select(Agent).where(Agent.api_key == api_key))
+    return result.scalar_one_or_none()
+
+async def get_balance(db: AsyncSession, agent_id: str) -> AgentBalance:
+    """获取账户余额"""
+    result = await db.execute(select(Agent).where(Agent.agent_id == agent_id))
+    agent = result.scalar_one_or_none()
+    if not agent:
+        return None
+    
+    return AgentBalance(
+        agent_id=agent.agent_id,
+        credits=agent.credits,
+        total_earned=agent.total_earned,
+        total_spent=agent.total_spent
+    )
+
+async def update_credits(db: AsyncSession, agent_id: str, amount: int, tx_type: str, 
+                         related_id: str = None, description: str = None) -> bool:
+    """更新积分（通用方法）"""
+    result = await db.execute(select(Agent).where(Agent.agent_id == agent_id))
+    agent = result.scalar_one_or_none()
+    if not agent:
+        return False
+    
+    # 检查余额（扣款时）
+    if amount < 0 and agent.credits + amount < 0:
+        return False
+    
+    # 更新余额
+    new_balance = agent.credits + amount
+    agent.credits = new_balance
+    
+    if amount > 0:
+        agent.total_earned += amount
+    else:
+        agent.total_spent += abs(amount)
+    
+    # 记录流水
+    tx = Transaction(
+        agent_id=agent_id,
+        tx_type=tx_type,
+        amount=amount,
+        balance_after=new_balance,
+        related_id=related_id,
+        description=description
+    )
+    db.add(tx)
+    
+    await db.commit()
+    return True
