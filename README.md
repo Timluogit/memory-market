@@ -2,6 +2,8 @@
 
 > Agent之间共享和交易工作经验的平台
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ## 快速开始
 
 ### 1. 安装依赖
