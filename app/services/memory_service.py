@@ -182,9 +182,9 @@ async def get_memory_detail(db: AsyncSession, memory_id: str, buyer_id: str = No
     row = result.first()
     if not row:
         return None
-    
+
     memory, seller_name, seller_reputation = row
-    
+
     # 检查是否已购买（免费记忆除外）
     if buyer_id and memory.price > 0:
         purchase = await db.execute(
@@ -194,11 +194,29 @@ async def get_memory_detail(db: AsyncSession, memory_id: str, buyer_id: str = No
         )
         if not purchase.scalar_one_or_none():
             raise PermissionError("未购买此记忆")
-    
+
+    # 处理 content 字段：如果是字符串则解析为 dict
+    import json
+    from json import JSONDecodeError
+    content = memory.content
+    if isinstance(content, str):
+        try:
+            content = json.loads(content)
+        except JSONDecodeError:
+            content = {"raw": content}  # 解析失败时保留原始内容
+
+    # 处理 verification_data 字段：如果是字符串则解析为 dict
+    verification_data = memory.verification_data
+    if verification_data and isinstance(verification_data, str):
+        try:
+            verification_data = json.loads(verification_data)
+        except JSONDecodeError:
+            verification_data = {"raw": verification_data}  # 解析失败时保留原始内容
+
     return MemoryDetail(
         **memory_to_response(memory, seller_name, seller_reputation).model_dump(),
-        content=memory.content,
-        verification_data=memory.verification_data
+        content=content,
+        verification_data=verification_data
     )
 
 async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> PurchaseResponse:
@@ -292,14 +310,24 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
     await _update_platform_stats(db, price, platform_fee)
 
     await db.commit()
-    
+
+    # 处理 content 字段：如果是字符串则解析为 dict
+    import json
+    from json import JSONDecodeError
+    memory_content = memory.content
+    if isinstance(memory_content, str):
+        try:
+            memory_content = json.loads(memory_content)
+        except JSONDecodeError:
+            memory_content = {"raw": memory_content}  # 解析失败时保留原始内容
+
     return PurchaseResponse(
         success=True,
         message="购买成功",
         memory_id=memory_id,
         credits_spent=price,
         remaining_credits=buyer.credits,
-        memory_content=memory.content
+        memory_content=memory_content
     )
 
 async def rate_memory(db: AsyncSession, buyer_id: str, req: RateRequest) -> RateResponse:
@@ -361,14 +389,14 @@ def _calc_verification_score(data: dict) -> float:
         score += min(data["test_period_days"] / 30, 0.2)
     return round(min(score, 1.0), 2)
 
-async def update_memory(db: AsyncSession, memory_id: str, seller_id: str, updates: dict) -> Optional[MemoryResponse]:
+async def update_memory(db: AsyncSession, memory_id: str, seller_id: str, updates: MemoryUpdate) -> Optional[MemoryResponse]:
     """更新记忆
 
     Args:
         db: 数据库会话
         memory_id: 记忆ID
         seller_id: 卖家ID（用于权限验证）
-        updates: 要更新的字段字典
+        updates: 要更新的字段（Pydantic模型）
 
     Returns:
         更新后的记忆响应，如果记忆不存在或无权限则返回None
@@ -387,13 +415,15 @@ async def update_memory(db: AsyncSession, memory_id: str, seller_id: str, update
         raise PermissionError("无权修改此记忆")
 
     # 提取 changelog（如果有）
-    changelog = updates.pop("changelog", None)
+    changelog = updates.changelog
 
     # 更新允许的字段
-    allowed_fields = {"title", "summary", "content", "tags", "price"}
-    for field, value in updates.items():
-        if field in allowed_fields and value is not None:
-            setattr(memory, field, value)
+    if updates.summary is not None:
+        memory.summary = updates.summary
+    if updates.content is not None:
+        memory.content = updates.content
+    if updates.tags is not None:
+        memory.tags = updates.tags
 
     # 更新时间戳
     from datetime import datetime
@@ -450,7 +480,7 @@ async def get_my_memories(
     total_earned = 0
 
     for memory in memories:
-        items.append(memory_to_response(memory))
+        items.append(memory_to_response(memory, "", 5.0))
         total_sales += memory.purchase_count
         total_earned += memory.purchase_count * memory.price
 
@@ -892,8 +922,19 @@ async def get_memory_versions(
     versions = result.scalars().all()
 
     from app.models.schemas import MemoryVersionResponse
-    items = [
-        MemoryVersionResponse(
+    import json
+    from json import JSONDecodeError
+    items = []
+    for v in versions:
+        # 处理 content 字段：如果是字符串则解析为 dict
+        content = v.content
+        if isinstance(content, str):
+            try:
+                content = json.loads(content)
+            except JSONDecodeError:
+                content = {"raw": content}  # 解析失败时保留原始内容
+
+        items.append(MemoryVersionResponse(
             version_id=v.version_id,
             memory_id=v.memory_id,
             version_number=v.version_number,
@@ -901,14 +942,12 @@ async def get_memory_versions(
             category=v.category,
             tags=v.tags or [],
             summary=v.summary,
-            content=v.content,
+            content=content,
             format_type=v.format_type,
             price=v.price,
             changelog=v.changelog,
             created_at=v.created_at
-        )
-        for v in versions
-    ]
+        ))
 
     return {
         "items": items,
@@ -947,6 +986,17 @@ async def get_memory_version(
         return None
 
     from app.models.schemas import MemoryVersionResponse
+    import json
+    from json import JSONDecodeError
+
+    # 处理 content 字段：如果是字符串则解析为 dict
+    content = version.content
+    if isinstance(content, str):
+        try:
+            content = json.loads(content)
+        except JSONDecodeError:
+            content = {"raw": content}  # 解析失败时保留原始内容
+
     return MemoryVersionResponse(
         version_id=version.version_id,
         memory_id=version.memory_id,
@@ -955,7 +1005,7 @@ async def get_memory_version(
         category=version.category,
         tags=version.tags or [],
         summary=version.summary,
-        content=version.content,
+        content=content,
         format_type=version.format_type,
         price=version.price,
         changelog=version.changelog,

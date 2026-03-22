@@ -1,6 +1,4 @@
 """统一异常处理"""
-from fastapi import HTTPException
-from fastapi.responses import JSONResponse
 from typing import Any
 
 

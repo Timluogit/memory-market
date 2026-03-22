@@ -5,7 +5,6 @@ from typing import Optional, List
 
 from app.db.database import get_db
 from app.models.schemas import *
-from app.models.schemas import VerificationRequest, CaptureRequest, BatchCaptureRequest
 from app.models.tables import Agent
 from app.services.agent_service import *
 from app.services.memory_service import *
@@ -181,7 +180,7 @@ async def verify_memory_endpoint(
 @router.put("/memories/{memory_id}", tags=["Memory"])
 async def update_memory_endpoint(
     memory_id: str,
-    req: dict,
+    req: MemoryUpdate,
     agent: Agent = Depends(get_current_agent),
     db: AsyncSession = Depends(get_db)
 ):

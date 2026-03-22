@@ -22,42 +22,42 @@
 
 | ID | 页面 | 测试用例 | 预期结果 | 状态 |
 |----|------|---------|---------|------|
-| F1.1 | 首页 | 打开首页，检查统计数据 | 显示正确的记忆/分类/卖家/交易数 | ⬜ |
-| F1.2 | 首页 | 切换Tab（记忆列表/交易/趋势/API） | 切换正常，内容显示正确 | ⬜ |
-| F1.3 | 首页 | 搜索框输入关键词 | 搜索结果正确 | ⬜ |
-| F1.4 | 首页 | 点击分类筛选 | 筛选结果正确 | ⬜ |
-| F1.5 | 首页 | 点击记忆卡片 | 弹出详情/正常显示 | ⬜ |
-| F1.6 | 首页 | 点击交易Tab | 显示交易记录列表 | ⬜ |
-| F1.7 | 首页 | 点击趋势Tab | 显示分类热度/卖家排行 | ⬜ |
-| F1.8 | 介绍页 | 打开intro.html | 页面正常，数据正确 | ⬜ |
-| F1.9 | 接入指南 | 打开agent-guide.html | 页面正常 | ⬜ |
-| F1.10 | 交易页 | 打开transactions.html | 显示交易列表 | ⬜ |
-| F1.11 | 趋势页 | 打开market.html | 显示趋势数据 | ⬜ |
+| F1.1 | 首页 | 打开首页，检查统计数据 | 显示正确的记忆/分类/卖家/交易数 | ✅ |
+| F1.2 | 首页 | 切换Tab（记忆列表/交易/趋势/API） | 切换正常，内容显示正确 | ✅ |
+| F1.3 | 首页 | 搜索框输入关键词 | 搜索结果正确 | ✅ |
+| F1.4 | 首页 | 点击分类筛选 | 筛选结果正确 | ✅ |
+| F1.5 | 首页 | 点击记忆卡片 | 弹出详情/正常显示 | ❌ BUG-006 无点击事件 |
+| F1.6 | 首页 | 点击交易Tab | 显示交易记录列表 | ✅ |
+| F1.7 | 首页 | 点击趋势Tab | 显示分类热度/卖家排行 | ✅ |
+| F1.8 | 介绍页 | 打开intro.html | 页面正常，数据正确 | ✅ |
+| F1.9 | 接入指南 | 打开agent-guide.html | 页面正常 | ✅ |
+| F1.10 | 交易页 | 打开transactions.html | 显示交易列表 | ✅ |
+| F1.11 | 趋势页 | 打开market.html | 显示趋势数据 | ✅ |
 
 ### 模块2：API接口（15个端点）
 
 | ID | 接口 | 测试用例 | 预期结果 | 状态 |
 |----|------|---------|---------|------|
-| A2.1 | GET / | 访问根路径 | 返回项目信息或重定向 | ⬜ |
-| A2.2 | POST /api/v1/agents | 注册新Agent | 返回agent_id和api_key | ⬜ |
-| A2.3 | GET /api/v1/agents/me | 查询当前Agent | 返回Agent信息 | ⬜ |
-| A2.4 | GET /api/v1/agents/me/balance | 查询余额 | 返回积分余额 | ⬜ |
-| A2.5 | GET /api/v1/agents/me/credits/history | 查询积分流水 | 返回流水记录 | ⬜ |
-| A2.6 | GET /api/v1/memories | 搜索记忆（无参数） | 返回记忆列表 | ⬜ |
-| A2.7 | GET /api/v1/memories?query=抖音 | 关键词搜索 | 返回相关记忆 | ⬜ |
-| A2.8 | GET /api/v1/memories?search_type=semantic | 语义搜索 | 返回语义相关记忆 | ⬜ |
-| A2.9 | GET /api/v1/memories?sort_by=relevance | 综合排序 | 返回排序结果 | ⬜ |
-| A2.10 | GET /api/v1/memories/{id} | 获取记忆详情 | 返回完整记忆 | ⬜ |
-| A2.11 | POST /api/v1/memories | 上传记忆 | 返回memory_id | ⬜ |
-| A2.12 | PUT /api/v1/memories/{id} | 更新记忆 | 返回更新结果 | ⬜ |
-| A2.13 | POST /api/v1/memories/{id}/purchase | 购买记忆 | 扣除积分，返回记忆 | ⬜ |
-| A2.14 | POST /api/v1/memories/{id}/rate | 评价记忆 | 更新评分 | ⬜ |
-| A2.15 | POST /api/v1/memories/{id}/verify | 验证记忆 | 更新验证分数 | ⬜ |
-| A2.16 | GET /api/v1/memories/{id}/versions | 版本历史 | 返回版本列表 | ⬜ |
-| A2.17 | GET /api/v1/market/trends | 市场趋势 | 返回趋势数据 | ⬜ |
-| A2.18 | GET /api/v1/transactions/ | 交易记录 | 返回交易列表 | ⬜ |
-| A2.19 | POST /api/v1/capture | 捕获经验 | 返回捕获结果 | ⬜ |
-| A2.20 | GET /health | 健康检查 | 返回状态ok | ⬜ |
+| A2.1 | GET / | 访问根路径 | 返回项目信息或重定向 | ✅ |
+| A2.2 | POST /api/v1/agents | 注册新Agent | 返回agent_id和api_key | ✅ |
+| A2.3 | GET /api/v1/agents/me | 查询当前Agent | 返回Agent信息 | ✅ |
+| A2.4 | GET /api/v1/agents/me/balance | 查询余额 | 返回积分余额 | ✅ |
+| A2.5 | GET /api/v1/agents/me/credits/history | 查询积分流水 | 返回流水记录 | ✅ |
+| A2.6 | GET /api/v1/memories | 搜索记忆（无参数） | 返回记忆列表 | ✅ |
+| A2.7 | GET /api/v1/memories?query=抖音 | 关键词搜索 | 返回相关记忆 | ✅ |
+| A2.8 | GET /api/v1/memories?search_type=semantic | 语义搜索 | 返回语义相关记忆 | ✅ |
+| A2.9 | GET /api/v1/memories?sort_by=relevance | 综合排序 | 返回排序结果 | ✅ |
+| A2.10 | GET /api/v1/memories/{id} | 获取记忆详情 | 返回完整记忆 | ✅ 已修复BUG-007 |
+| A2.11 | POST /api/v1/memories | 上传记忆 | 返回memory_id | ✅ |
+| A2.12 | PUT /api/v1/memories/{id} | 更新记忆 | 返回更新结果 | ✅ |
+| A2.13 | POST /api/v1/memories/{id}/purchase | 购买记忆 | 扣除积分，返回记忆 | ✅ |
+| A2.14 | POST /api/v1/memories/{id}/rate | 评价记忆 | 更新评分 | ✅ |
+| A2.15 | POST /api/v1/memories/{id}/verify | 验证记忆 | 更新验证分数 | ✅ |
+| A2.16 | GET /api/v1/memories/{id}/versions | 版本历史 | 返回版本列表 | ✅ |
+| A2.17 | GET /api/v1/market/trends | 市场趋势 | 返回趋势数据 | ✅ |
+| A2.18 | GET /api/v1/transactions/ | 交易记录 | 返回交易列表 | ✅ |
+| A2.19 | POST /api/v1/capture | 捕获经验 | 返回捕获结果 | ✅ |
+| A2.20 | GET /health | 健康检查 | 返回状态ok | ✅ |
 
 ### 模块3：MCP工具（10个工具）
 

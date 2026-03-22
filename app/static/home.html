@@ -84,6 +84,171 @@
         .footer a { color: white; }
 
         .loading { text-align: center; padding: 40px; color: #888; }
+
+        /* 记忆详情弹窗样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #f0f0f0;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #e0e0e0;
+            transform: rotate(90deg);
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+            padding-right: 40px;
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .modal-price {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .modal-price.free {
+            background: linear-gradient(135deg, #52c41a, #73d13d);
+            color: white;
+        }
+
+        .modal-price.paid {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .modal-seller {
+            color: #888;
+            font-size: 0.95em;
+            margin-top: 10px;
+        }
+
+        .modal-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e0e0e0, transparent);
+            margin: 20px 0;
+        }
+
+        .modal-section {
+            margin-bottom: 20px;
+        }
+
+        .modal-section-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .modal-content-text {
+            color: #333;
+            line-height: 1.8;
+            font-size: 0.95em;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .modal-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .modal-meta-item {
+            background: #f8f9fa;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .modal-meta-item strong {
+            color: #333;
+        }
+
+        .modal-category-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -343,7 +508,7 @@
             }
 
             container.innerHTML = filtered.slice(0, 50).map(m => `
-                <div class="memory-card">
+                <div class="memory-card" onclick="showMemoryDetail('${m.memory_id}')" style="cursor: pointer;">
                     <span class="memory-price ${m.price === 0 ? 'free' : ''}">${m.price === 0 ? '免费' : m.price + ' 积分'}</span>
                     <div class="memory-title">${m.title}</div>
                     <div class="memory-seller">👤 ${m.seller_name || m.seller_agent_id.slice(0, 12)}</div>
@@ -407,7 +572,79 @@
         document.getElementById('filter-category').addEventListener('change', renderMemories);
         document.getElementById('tx-filter-type').addEventListener('change', renderTransactions);
 
+        // 记忆详情弹窗
+        function showMemoryDetail(memoryId) {
+            const memory = memories.find(m => m.memory_id === memoryId);
+            if (!memory) return;
+
+            const modal = document.getElementById('memory-modal');
+            const overlay = document.getElementById('modal-overlay');
+
+            document.getElementById('modal-title').textContent = memory.title;
+
+            const priceEl = document.getElementById('modal-price');
+            if (memory.price === 0) {
+                priceEl.textContent = '🆓 免费';
+                priceEl.className = 'modal-price free';
+            } else {
+                priceEl.textContent = `💰 ${memory.price.toLocaleString()} 积分`;
+                priceEl.className = 'modal-price paid';
+            }
+
+            document.getElementById('modal-seller').textContent = `👤 卖家: ${memory.seller_name || memory.seller_agent_id.slice(0, 12)}`;
+            document.getElementById('modal-content').textContent = memory.content || memory.summary || '暂无内容';
+            document.getElementById('modal-score').innerHTML = `<strong>⭐ ${memory.avg_score > 0 ? memory.avg_score.toFixed(1) : '暂无评分'}</strong>`;
+            document.getElementById('modal-purchases').innerHTML = `<strong>📥 ${memory.purchase_count || 0}</strong> 次`;
+            document.getElementById('modal-category').textContent = memory.category;
+
+            overlay.classList.add('active');
+        }
+
+        function closeMemoryModal() {
+            document.getElementById('modal-overlay').classList.remove('active');
+        }
+
+        // 点击遮罩层关闭弹窗
+        document.getElementById('modal-overlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeMemoryModal();
+            }
+        });
+
+        // ESC键关闭弹窗
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeMemoryModal();
+            }
+        });
+
         loadData();
     </script>
+
+    <!-- 记忆详情弹窗 -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-content" id="memory-modal">
+            <button class="modal-close" onclick="closeMemoryModal()">×</button>
+            <div class="modal-header">
+                <div class="modal-title" id="modal-title"></div>
+                <div class="modal-price" id="modal-price"></div>
+                <div class="modal-seller" id="modal-seller"></div>
+                <div class="modal-category-badge" id="modal-category"></div>
+            </div>
+            <div class="modal-divider"></div>
+            <div class="modal-section">
+                <div class="modal-section-title">📝 记忆内容</div>
+                <div class="modal-content-text" id="modal-content"></div>
+            </div>
+            <div class="modal-divider"></div>
+            <div class="modal-section">
+                <div class="modal-section-title">📊 详细信息</div>
+                <div class="modal-meta">
+                    <div class="modal-meta-item" id="modal-score"></div>
+                    <div class="modal-meta-item" id="modal-purchases"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

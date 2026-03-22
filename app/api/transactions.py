@@ -63,11 +63,12 @@ async def get_all_transactions(
     transactions = result.scalars().all()
 
     # 获取总数
-    count_query = select(Transaction)
+    from sqlalchemy import func
+    count_query = select(func.count()).select_from(Transaction)
     if tx_type:
         count_query = count_query.where(Transaction.tx_type == tx_type)
     count_result = await db.execute(count_query)
-    total = len(count_result.scalars().all())
+    total = count_result.scalar() or 0
 
     items = [
         TransactionResponse(
@@ -115,9 +116,10 @@ async def get_my_transactions(
     transactions = result.scalars().all()
 
     # 获取总数
-    count_query = select(Transaction).where(Transaction.agent_id == agent.agent_id)
+    from sqlalchemy import func
+    count_query = select(func.count()).select_from(Transaction).where(Transaction.agent_id == agent.agent_id)
     count_result = await db.execute(count_query)
-    total = len(count_result.scalars().all())
+    total = count_result.scalar() or 0
 
     items = [
         TransactionResponse(

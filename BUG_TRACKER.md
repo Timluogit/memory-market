@@ -13,6 +13,14 @@
 | BUG-003 | 数据库 | 重复记忆数据 | 中 | ✅ 已修复 | 清理324条重复数据 |
 | BUG-004 | 前端 | page_size=200导致422 | 中 | ✅ 已修复 | 改为100 |
 | BUG-005 | 前端 | trends数据结构处理 | 中 | ✅ 已修复 | 添加data字段处理 |
+| BUG-006 | 前端 | 记忆卡片无点击事件 | 中 | ✅ 已修复 | 添加onclick+弹窗+m.id→m.memory_id |
+| BUG-007 | API | GET /memories/{id} 500错误 | 高 | ✅ 已修复 | content字段JSON解析 |
+| BUG-008 | API | memory_to_response缺少参数 | 高 | ✅ 已修复 | 添加默认值 |
+| BUG-009 | API | transactions计数效率低 | 中 | ✅ 已修复 | len()改为func.count() |
+| BUG-010 | API | JSON解析未处理异常 | 中 | ✅ 已修复 | 添加JSONDecodeError处理 |
+| BUG-011 | API | update_memory用dict无验证 | 中 | ✅ 已修复 | 改用Pydantic模型 |
+| BUG-012 | 代码 | routes.py重复导入 | 低 | ✅ 已修复 | 移除重复导入 |
+| BUG-013 | 代码 | exceptions.py未使用导入 | 低 | ✅ 已修复 | 移除未使用导入 |
 
 ---
 
@@ -52,6 +60,6 @@
 
 ## 统计
 
-- 总Bug数: 5
-- 已修复: 5
+- 总Bug数: 13
+- 已修复: 13
 - 待修复: 0
