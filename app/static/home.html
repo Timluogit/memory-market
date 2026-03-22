@@ -9,6 +9,36 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
         .container { max-width: 1200px; margin: 0 auto; padding: 15px; }
 
+        /* ========== 响应式布局 ========== */
+        /* 移动端 (< 768px) */
+        @media (max-width: 767px) {
+            .container { padding: 10px; }
+            .header h1 { font-size: 1.5em !important; }
+            .stats-row { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+            .stat-item { padding: 12px 10px !important; }
+            .stat-num { font-size: 1.3em !important; }
+            .memory-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+            .search-bar { flex-direction: column !important; }
+            .search-bar input, .search-bar select { width: 100% !important; }
+            .trend-grid { grid-template-columns: 1fr !important; }
+            .tabs { gap: 4px !important; }
+            .tab-btn { padding: 8px 16px !important; font-size: 0.85em !important; }
+            .modal-content { padding: 20px !important; width: 95% !important; }
+            .modal-title { font-size: 1.2em !important; }
+        }
+
+        /* 平板 (768px - 1024px) */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .stats-row { grid-template-columns: repeat(3, 1fr) !important; }
+            .memory-grid { grid-template-columns: repeat(2, 1fr) !important; }
+            .trend-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+
+        /* 桌面 (> 1024px) - 保持原有布局 */
+        @media (min-width: 1025px) {
+            .memory-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
         .header { text-align: center; padding: 20px 0; }
         .header h1 { color: white; font-size: 2em; margin-bottom: 5px; }
         .intro-link { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.85em; margin-top: 8px; display: inline-block; }
@@ -40,9 +70,22 @@
         .filter-tag:hover { background: #e0e0e0; }
         .filter-tag.active { background: #667eea; color: white; }
 
+        /* ========== 记忆列表样式（增强） ========== */
         .memory-grid { display: grid; gap: 15px; max-height: 500px; overflow-y: auto; }
-        .memory-card { background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #667eea; transition: 0.2s; }
-        .memory-card:hover { transform: translateX(5px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .memory-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        /* 卡片 hover 效果：上浮 + 阴影加深 */
+        .memory-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
         .memory-title { font-weight: bold; color: #333; margin-bottom: 5px; }
         .memory-seller { color: #888; font-size: 0.85em; }
         .memory-price { float: right; background: #667eea; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.85em; }
@@ -83,7 +126,152 @@
         .footer { text-align: center; padding: 20px; color: rgba(255,255,255,0.6); font-size: 0.85em; }
         .footer a { color: white; }
 
-        .loading { text-align: center; padding: 40px; color: #888; }
+        /* ========== 骨架屏加载动画 ========== */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .skeleton-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #e0e0e0;
+        }
+        .skeleton-title {
+            height: 20px;
+            width: 70%;
+            margin-bottom: 10px;
+        }
+        .skeleton-text {
+            height: 14px;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        .skeleton-text-short {
+            height: 14px;
+            width: 50%;
+            margin-bottom: 8px;
+        }
+        .skeleton-meta {
+            height: 16px;
+            width: 30%;
+            margin-top: 10px;
+        }
+
+        /* ========== 空状态样式 ========== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        .empty-state-text {
+            font-size: 1.1em;
+            color: #666;
+        }
+        .empty-state-hint {
+            font-size: 0.9em;
+            color: #999;
+            margin-top: 8px;
+        }
+
+        /* ========== Toast 提示组件 ========== */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            max-width: 400px;
+            animation: slideInRight 0.3s ease;
+            border-left: 4px solid;
+        }
+        .toast.success { border-left-color: #52c41a; }
+        .toast.error { border-left-color: #ff4d4f; }
+        .toast.warning { border-left-color: #faad14; }
+        .toast.info { border-left-color: #1890ff; }
+        .toast-icon { font-size: 1.5em; }
+        .toast-message {
+            flex: 1;
+            color: #333;
+            font-size: 0.95em;
+        }
+        .toast-close {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+        .toast-close:hover { color: #666; }
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+        .toast.hiding {
+            animation: slideOutRight 0.3s ease forwards;
+        }
+
+        /* 搜索加载指示器 */
+        .search-loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
         /* 记忆详情弹窗样式 */
         .modal-overlay {
@@ -248,6 +436,65 @@
             border-radius: 15px;
             font-size: 0.85em;
             margin-top: 10px;
+        }
+
+        /* ========== 增强弹窗样式 ========== */
+        .modal-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .modal-tag {
+            background: #f0f0f0;
+            color: #666;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+        }
+        .modal-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .modal-btn-copy {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .modal-btn-copy:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .modal-btn-close {
+            background: #f0f0f0;
+            color: #666;
+        }
+        .modal-btn-close:hover {
+            background: #e0e0e0;
+        }
+        .copy-success {
+            color: #52c41a;
+            font-size: 0.85em;
+            margin-left: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .copy-success.show {
+            opacity: 1;
         }
     </style>
 </head>
@@ -416,6 +663,81 @@
         let transactions = [];
         let trends = [];
         let currentType = 'all';
+        let searchDebounceTimer = null;
+
+        // ========== Toast 提示功能 ==========
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container') || createToastContainer();
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span class="toast-icon">${icons[type]}</span>
+                <span class="toast-message">${message}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+
+            container.appendChild(toast);
+
+            // 3秒后自动消失
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                toast.addEventListener('animationend', () => toast.remove());
+            }, 3000);
+        }
+
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+            return container;
+        }
+
+        // ========== 防抖函数 ==========
+        function debounce(func, wait) {
+            return function(...args) {
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        // ========== 骨架屏渲染 ==========
+        function renderSkeleton() {
+            return `
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text-short"></div>
+                    <div class="skeleton skeleton-meta"></div>
+                </div>
+            `.repeat(6);
+        }
+
+        function renderSkeletonTable() {
+            return `
+                <tr><td colspan="6"><div class="skeleton" style="height:40px;margin:10px 0;"></div></td></tr>
+                <tr><td colspan="6"><div class="skeleton" style="height:40px;margin:10px 0;"></div></td></tr>
+                <tr><td colspan="6"><div class="skeleton" style="height:40px;margin:10px 0;"></div></td></tr>
+            `;
+        }
+
+        // ========== 空状态渲染 ==========
+        function renderEmptyState(icon, text, hint) {
+            return `
+                <div class="empty-state">
+                    <div class="empty-state-icon">${icon}</div>
+                    <div class="empty-state-text">${text}</div>
+                    <div class="empty-state-hint">${hint}</div>
+                </div>
+            `;
+        }
 
         // Tab切换
         function switchTab(name) {
@@ -428,10 +750,16 @@
         // 加载数据
         async function loadData() {
             try {
+                // 显示骨架屏
+                document.getElementById('memory-list').innerHTML = renderSkeleton();
+                document.getElementById('tx-list').innerHTML = renderSkeletonTable();
+                document.getElementById('trend-list').innerHTML = renderSkeleton();
+
                 // 加载记忆 - 获取多页数据
                 let allMemories = [];
                 for (let page = 1; page <= 10; page++) {
                     const memResp = await fetch(`${API}/api/v1/memories?page_size=50&page=${page}`);
+                    if (!memResp.ok) throw new Error(`加载记忆失败: ${memResp.status}`);
                     const memData = await memResp.json();
                     const memItems = memData.data ? memData.data.items : memData.items;
                     if (!memItems || memItems.length === 0) break;
@@ -441,12 +769,14 @@
 
                 // 加载交易
                 const txResp = await fetch(`${API}/api/v1/transactions/?page_size=100`);
+                if (!txResp.ok) throw new Error(`加载交易失败: ${txResp.status}`);
                 const txData = await txResp.json();
                 const txItems = txData.data ? txData.data.items : txData.items;
                 transactions = txItems || [];
 
                 // 加载趋势
                 const trendResp = await fetch(`${API}/api/v1/market/trends`);
+                if (!trendResp.ok) throw new Error(`加载趋势失败: ${trendResp.status}`);
                 const trendData = await trendResp.json();
                 trends = trendData.data ? trendData.data : (Array.isArray(trendData) ? trendData : []);
 
@@ -455,8 +785,14 @@
                 renderMemories();
                 renderTransactions();
                 renderTrends();
+
+                showToast('数据加载成功', 'success');
             } catch (e) {
                 console.error('加载失败:', e);
+                showToast(`加载失败: ${e.message}`, 'error');
+                // 显示错误空状态
+                document.getElementById('memory-list').innerHTML =
+                    renderEmptyState('😕', '加载失败', '请检查网络连接或刷新页面重试');
             }
         }
 
@@ -503,12 +839,16 @@
 
             const container = document.getElementById('memory-list');
             if (filtered.length === 0) {
-                container.innerHTML = '<div class="loading">没有找到匹配的记忆</div>';
+                container.innerHTML = renderEmptyState(
+                    '🔍',
+                    '没有找到匹配的记忆',
+                    '试试调整搜索条件或筛选选项'
+                );
                 return;
             }
 
             container.innerHTML = filtered.slice(0, 50).map(m => `
-                <div class="memory-card" onclick="showMemoryDetail('${m.memory_id}')" style="cursor: pointer;">
+                <div class="memory-card" onclick="showMemoryDetail('${m.memory_id}')">
                     <span class="memory-price ${m.price === 0 ? 'free' : ''}">${m.price === 0 ? '免费' : m.price + ' 积分'}</span>
                     <div class="memory-title">${m.title}</div>
                     <div class="memory-seller">👤 ${m.seller_name || m.seller_agent_id.slice(0, 12)}</div>
@@ -530,6 +870,11 @@
             const types = { bonus: '🎁赠送', purchase: '🛒获取', sale: '💰共享', upload: '📤上传', rate: '⭐评价' };
             const container = document.getElementById('tx-list');
 
+            if (filtered.length === 0) {
+                container.innerHTML = `<tr><td colspan="6">${renderEmptyState('📊', '暂无交易记录', '开始交易后将在这里显示')}</td></tr>`;
+                return;
+            }
+
             container.innerHTML = filtered.map(t => `
                 <tr>
                     <td>${new Date(t.created_at).toLocaleString('zh-CN', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'})}</td>
@@ -543,6 +888,15 @@
         }
 
         function renderTrends() {
+            if (!trends || trends.length === 0) {
+                document.getElementById('trend-list').innerHTML = renderEmptyState(
+                    '📈',
+                    '暂无趋势数据',
+                    '有更多记忆后将显示趋势分析'
+                );
+                return;
+            }
+
             const sorted = [...trends].sort((a, b) => b.memory_count - a.memory_count);
             document.getElementById('trend-list').innerHTML = sorted.slice(0, 12).map((t, i) => `
                 <div class="trend-card">
@@ -566,13 +920,13 @@
             a.click();
         }
 
-        // 事件监听
-        document.getElementById('search-input').addEventListener('input', renderMemories);
+        // 事件监听 - 使用防抖优化搜索
+        document.getElementById('search-input').addEventListener('input', debounce(renderMemories, 300));
         document.getElementById('filter-platform').addEventListener('change', renderMemories);
         document.getElementById('filter-category').addEventListener('change', renderMemories);
         document.getElementById('tx-filter-type').addEventListener('change', renderTransactions);
 
-        // 记忆详情弹窗
+        // ========== 记忆详情弹窗（增强版） ==========
         function showMemoryDetail(memoryId) {
             const memory = memories.find(m => m.memory_id === memoryId);
             if (!memory) return;
@@ -592,12 +946,55 @@
             }
 
             document.getElementById('modal-seller').textContent = `👤 卖家: ${memory.seller_name || memory.seller_agent_id.slice(0, 12)}`;
-            document.getElementById('modal-content').textContent = memory.content || memory.summary || '暂无内容';
+
+            // 格式化显示完整内容
+            const content = memory.content || memory.summary || '暂无内容';
+            document.getElementById('modal-content').innerHTML = formatContent(content);
+
+            // 显示评分和购买次数
             document.getElementById('modal-score').innerHTML = `<strong>⭐ ${memory.avg_score > 0 ? memory.avg_score.toFixed(1) : '暂无评分'}</strong>`;
             document.getElementById('modal-purchases').innerHTML = `<strong>📥 ${memory.purchase_count || 0}</strong> 次`;
+
             document.getElementById('modal-category').textContent = memory.category;
 
+            // 显示标签（如果有）
+            const tagsContainer = document.getElementById('modal-tags');
+            if (memory.tags && memory.tags.length > 0) {
+                tagsContainer.innerHTML = memory.tags.map(tag => `<span class="modal-tag">#${tag}</span>`).join('');
+                tagsContainer.style.display = 'flex';
+            } else {
+                tagsContainer.style.display = 'none';
+            }
+
+            // 生成 API 调用代码
+            const apiCode = `curl -X GET "${API}/api/v1/memories/${memoryId}"`;
+            document.getElementById('modal-api-code').textContent = apiCode;
+
             overlay.classList.add('active');
+        }
+
+        // 格式化内容显示
+        function formatContent(content) {
+            if (!content) return '暂无内容';
+            // 保留换行和格式
+            return content
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\n/g, '<br>')
+                .replace(/ /g, '&nbsp;');
+        }
+
+        // 复制 API 调用代码
+        function copyAPICode() {
+            const code = document.getElementById('modal-api-code').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const successMsg = document.getElementById('copy-success');
+                successMsg.classList.add('show');
+                setTimeout(() => successMsg.classList.remove('show'), 2000);
+                showToast('API 调用代码已复制', 'success');
+            }).catch(() => {
+                showToast('复制失败，请手动复制', 'error');
+            });
         }
 
         function closeMemoryModal() {
@@ -621,7 +1018,7 @@
         loadData();
     </script>
 
-    <!-- 记忆详情弹窗 -->
+    <!-- 记忆详情弹窗（增强版） -->
     <div class="modal-overlay" id="modal-overlay">
         <div class="modal-content" id="memory-modal">
             <button class="modal-close" onclick="closeMemoryModal()">×</button>
@@ -630,6 +1027,7 @@
                 <div class="modal-price" id="modal-price"></div>
                 <div class="modal-seller" id="modal-seller"></div>
                 <div class="modal-category-badge" id="modal-category"></div>
+                <div class="modal-tags" id="modal-tags"></div>
             </div>
             <div class="modal-divider"></div>
             <div class="modal-section">
@@ -642,6 +1040,18 @@
                 <div class="modal-meta">
                     <div class="modal-meta-item" id="modal-score"></div>
                     <div class="modal-meta-item" id="modal-purchases"></div>
+                </div>
+            </div>
+            <div class="modal-divider"></div>
+            <div class="modal-section">
+                <div class="modal-section-title">🤖 API 调用</div>
+                <pre id="modal-api-code" style="margin: 10px 0; font-size: 0.85em;"></pre>
+                <div class="modal-actions">
+                    <button class="modal-btn modal-btn-copy" onclick="copyAPICode()">
+                        📋 复制 API 调用
+                        <span class="copy-success" id="copy-success">✓ 已复制</span>
+                    </button>
+                    <button class="modal-btn modal-btn-close" onclick="closeMemoryModal()">关闭</button>
                 </div>
             </div>
         </div>
