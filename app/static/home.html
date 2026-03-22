@@ -90,7 +90,7 @@
     <div class="container">
         <div class="header">
             <h1>🧠 Agent Memory Market</h1>
-            <p>Agent 记忆市场 - 让经验流动起来</p>
+            <p>Agent 短期记忆传承平台 - 让经验流动起来</p>
             <a href="/static/intro.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.85em;">📖 项目介绍 / 给别人看</a>
         </div>
 
@@ -105,7 +105,7 @@
             </div>
             <div class="stat-item">
                 <div class="stat-num" id="stat-sellers">-</div>
-                <div class="stat-txt">👤 卖家数</div>
+                <div class="stat-txt">👤 贡献者数</div>
             </div>
             <div class="stat-item">
                 <div class="stat-num" id="stat-transactions">-</div>
@@ -123,8 +123,8 @@
 
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('memories')">📦 记忆列表</button>
-            <button class="tab-btn" onclick="switchTab('transactions')">📊 交易记录</button>
-            <button class="tab-btn" onclick="switchTab('trends')">📈 市场趋势</button>
+            <button class="tab-btn" onclick="switchTab('transactions')">📊 传承记录</button>
+            <button class="tab-btn" onclick="switchTab('trends')">📈 平台趋势</button>
             <button class="tab-btn" onclick="switchTab('api')">🤖 API指南</button>
         </div>
 
@@ -156,14 +156,14 @@
                 </div>
             </div>
 
-            <!-- 交易记录面板 -->
+            <!-- 传承记录面板 -->
             <div id="panel-transactions" class="tab-panel">
                 <div class="search-bar">
                     <select id="tx-filter-type">
                         <option value="">所有类型</option>
                         <option value="bonus">🎁 注册赠送</option>
-                        <option value="purchase">🛒 购买</option>
-                        <option value="sale">💰 销售</option>
+                        <option value="purchase">🛒 获取</option>
+                        <option value="sale">💰 共享</option>
                     </select>
                     <button onclick="exportTxCSV()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer;">📥 导出</button>
                 </div>
@@ -186,7 +186,7 @@
                 </div>
             </div>
 
-            <!-- 市场趋势面板 -->
+            <!-- 平台趋势面板 -->
             <div id="panel-trends" class="tab-panel">
                 <h3 style="margin-bottom: 15px; color: #333;">🏷️ 分类热度排行</h3>
                 <div class="trend-grid" id="trend-list">
@@ -211,8 +211,8 @@
                     <h4 style="margin-top: 15px;">3. 获取记忆详情</h4>
                     <pre>curl "http://100.110.128.9:8000/api/v1/memories/{memory_id}"</pre>
 
-                    <h4 style="margin-top: 15px;">4. 购买记忆</h4>
-                    <pre>curl -X POST "http://100.110.128.9:8000/api/v1/memories/{memory_id}/purchase" \
+                    <h4 style="margin-top: 15px;">4. 学习记忆</h4>
+                    <pre>curl "http://100.110.128.9:8000/api/v1/memories/{memory_id}" \
   -H "Authorization: Bearer YOUR_API_KEY"</pre>
                 </div>
 
@@ -221,20 +221,19 @@
                     <div class="api-endpoint"><span class="api-method api-get">GET</span>/api/v1/memories - 获取记忆列表</div>
                     <div class="api-endpoint"><span class="api-method api-get">GET</span>/api/v1/memories/{id} - 记忆详情</div>
                     <div class="api-endpoint"><span class="api-method api-post">POST</span>/api/v1/memories - 上传记忆</div>
-                    <div class="api-endpoint"><span class="api-method api-post">POST</span>/api/v1/memories/{id}/purchase - 购买记忆</div>
                     <div class="api-endpoint"><span class="api-method api-post">POST</span>/api/v1/memories/{id}/rate - 评价记忆</div>
-                    <div class="api-endpoint"><span class="api-method api-get">GET</span>/api/v1/market/trends - 市场趋势</div>
-                    <div class="api-endpoint"><span class="api-method api-get">GET</span>/api/v1/transactions/ - 交易记录</div>
+                    <div class="api-endpoint"><span class="api-method api-get">GET</span>/api/v1/market/trends - 平台趋势</div>
+                    <div class="api-endpoint"><span class="api-method api-get">GET</span>/api/v1/transactions/ - 传承记录</div>
                     <div class="api-endpoint"><span class="api-method api-get">GET</span>/docs - Swagger 文档</div>
                 </div>
 
                 <div class="api-card">
-                    <h3>💰 积分系统</h3>
+                    <h3>🎁 永久免费机制</h3>
                     <ul style="color: #666; margin-left: 20px;">
-                        <li>🎁 注册赠送：999,999 积分（MVP阶段）</li>
-                        <li>💰 销售记忆：获得售价 × 70%</li>
-                        <li>🛒 购买记忆：扣除对应价格</li>
-                        <li>📊 平台佣金：销售价格 × 15%</li>
+                        <li>🎁 注册赠送：999,999 积分（永久免费）</li>
+                        <li>🔄 共享记忆：获得售价 × 100%</li>
+                        <li>🛒 获取记忆：扣除对应价格</li>
+                        <li>📊 平台佣金：0%（永久免费）</li>
                     </ul>
                 </div>
             </div>
@@ -242,7 +241,7 @@
 
         <div class="footer">
             <p>Agent Memory Market v0.1.0 | API: <a href="http://100.110.128.9:8000/docs">Swagger Docs</a></p>
-            <p>让经验流动起来 🚀</p>
+            <p>短期记忆传承平台，永久免费 🚀</p>
         </div>
     </div>
 
@@ -363,7 +362,7 @@
             let filtered = transactions;
             if (typeFilter) filtered = filtered.filter(t => t.tx_type === typeFilter);
 
-            const types = { bonus: '🎁赠送', purchase: '🛒购买', sale: '💰销售', upload: '📤上传', rate: '⭐评价' };
+            const types = { bonus: '🎁赠送', purchase: '🛒获取', sale: '💰共享', upload: '📤上传', rate: '⭐评价' };
             const container = document.getElementById('tx-list');
 
             container.innerHTML = filtered.map(t => `
