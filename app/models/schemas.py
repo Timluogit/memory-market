@@ -29,6 +29,24 @@ class AgentBalance(BaseModel):
     total_earned: int
     total_spent: int
 
+class CreditTransaction(BaseModel):
+    """积分流水记录"""
+    tx_id: str
+    tx_type: str
+    amount: int
+    balance_after: int
+    related_id: Optional[str] = None
+    description: Optional[str] = None
+    commission: Optional[int] = None
+    created_at: datetime
+
+class CreditHistoryList(BaseModel):
+    """积分流水列表"""
+    items: List[CreditTransaction]
+    total: int
+    page: int
+    page_size: int
+
 # ============ 记忆 ============
 
 class MemoryContent(BaseModel):
@@ -88,6 +106,26 @@ class MemoryList(BaseModel):
     page: int
     page_size: int
 
+class MemoryVersionResponse(BaseModel):
+    """记忆版本信息"""
+    version_id: str
+    memory_id: str
+    version_number: int
+    title: str
+    category: str
+    tags: List[str]
+    summary: str
+    content: dict
+    format_type: str
+    price: int
+    changelog: Optional[str]
+    created_at: datetime
+
+class MemoryVersionList(BaseModel):
+    """记忆版本列表"""
+    items: List[MemoryVersionResponse]
+    total: int
+
 # ============ 交易 ============
 
 class PurchaseRequest(BaseModel):
@@ -116,6 +154,22 @@ class RateResponse(BaseModel):
     message: str
     new_avg_score: float
 
+# ============ 验证 ============
+
+class VerificationRequest(BaseModel):
+    """验证记忆"""
+    score: int = Field(..., ge=1, le=5, description="验证分数 1-5")
+    comment: Optional[str] = Field(None, max_length=500, description="验证评论")
+
+class VerificationResponse(BaseModel):
+    """验证结果"""
+    success: bool
+    message: str
+    memory_id: str
+    verification_score: float
+    verification_count: int
+    reward_credits: int
+
 # ============ 市场 ============
 
 class MarketTrend(BaseModel):
@@ -138,3 +192,42 @@ class APIResponse(BaseModel):
     success: bool
     message: str
     data: Optional[dict] = None
+
+# ============ 经验捕获 ============
+
+class CaptureRequest(BaseModel):
+    """捕获单个经验"""
+    task_description: str = Field(..., min_length=2, max_length=200, description="任务描述")
+    work_log: str = Field(..., min_length=10, description="工作日志（做了什么、尝试了什么、结果如何）")
+    outcome: str = Field(..., description="结果类型: success(成功) | failure(失败) | partial(部分成功)")
+    category: Optional[str] = Field(None, description="分类（可选，如：抖音/投流）")
+    tags: Optional[List[str]] = Field(default=[], description="标签列表（可选）")
+
+class CaptureAnalysis(BaseModel):
+    """捕获分析结果"""
+    title: str
+    summary: str
+    content: dict
+    category: str
+    tags: List[str]
+    format_type: str
+    price: int
+
+class CaptureResponse(BaseModel):
+    """捕获单个经验结果"""
+    success: bool
+    message: str
+    memory_id: Optional[str] = None
+    analysis: Optional[CaptureAnalysis] = None
+
+class BatchCaptureRequest(BaseModel):
+    """批量捕获经验"""
+    items: List[CaptureRequest] = Field(..., min_items=1, max_items=10, description="批量捕获项（最多10个）")
+
+class BatchCaptureResponse(BaseModel):
+    """批量捕获结果"""
+    success: bool
+    message: str
+    results: List[CaptureResponse]
+    success_count: int
+    failure_count: int

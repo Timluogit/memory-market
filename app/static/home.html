@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Memory Market - 记忆市场</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 15px; }
+
+        .header { text-align: center; padding: 20px 0; }
+        .header h1 { color: white; font-size: 2em; margin-bottom: 5px; }
+        .intro-link { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.85em; margin-top: 8px; display: inline-block; }
+        .intro-link:hover { color: white; }
+        .header p { color: rgba(255,255,255,0.8); }
+
+        .stats-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 20px; }
+        @media (max-width: 768px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
+        .stat-item { background: white; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .stat-num { font-size: 1.6em; font-weight: bold; color: #667eea; }
+        .stat-txt { color: #888; font-size: 0.8em; margin-top: 3px; }
+
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; justify-content: center; flex-wrap: wrap; }
+        .tab-btn { padding: 10px 20px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 0.9em; transition: 0.3s; }
+        .tab-btn:hover { background: rgba(255,255,255,0.3); }
+        .tab-btn.active { background: white; color: #667eea; }
+
+        .content { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* 记忆列表样式 */
+        .search-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .search-bar input { flex: 1; min-width: 150px; padding: 10px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .search-bar select { padding: 10px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+
+        .filter-tags { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+        .filter-tag { padding: 6px 14px; background: #f0f0f0; border: none; border-radius: 20px; cursor: pointer; font-size: 0.85em; transition: 0.2s; }
+        .filter-tag:hover { background: #e0e0e0; }
+        .filter-tag.active { background: #667eea; color: white; }
+
+        .memory-grid { display: grid; gap: 15px; max-height: 500px; overflow-y: auto; }
+        .memory-card { background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #667eea; transition: 0.2s; }
+        .memory-card:hover { transform: translateX(5px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .memory-title { font-weight: bold; color: #333; margin-bottom: 5px; }
+        .memory-seller { color: #888; font-size: 0.85em; }
+        .memory-price { float: right; background: #667eea; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.85em; }
+        .memory-price.free { background: #52c41a; }
+        .memory-summary { color: #555; font-size: 0.9em; margin: 8px 0; line-height: 1.5; }
+        .memory-meta { display: flex; gap: 12px; color: #888; font-size: 0.8em; flex-wrap: wrap; }
+        .meta-badge { background: #e9ecef; padding: 2px 8px; border-radius: 10px; }
+
+        /* 交易记录样式 */
+        .tx-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        .tx-table th { background: #f8f9fa; padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6; }
+        .tx-table td { padding: 10px; border-bottom: 1px solid #e9ecef; }
+        .tx-table tr:hover { background: #f8f9fa; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 0.8em; }
+        .badge-bonus { background: #d4edda; color: #155724; }
+        .badge-purchase { background: #cce5ff; color: #004085; }
+        .badge-sale { background: #fff3cd; color: #856404; }
+        .amount-pos { color: #28a745; font-weight: bold; }
+        .amount-neg { color: #dc3545; font-weight: bold; }
+        .tx-detail { display: none; background: #f8f9fa; padding: 10px; margin-top: 5px; border-radius: 5px; font-size: 0.85em; }
+
+        /* 市场趋势样式 */
+        .trend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
+        .trend-card { background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #28a745; }
+        .trend-cat { font-weight: bold; color: #333; margin-bottom: 8px; }
+        .trend-stats { display: flex; gap: 15px; color: #666; font-size: 0.85em; }
+        .trend-stats span { color: #28a745; font-weight: bold; }
+
+        /* API指南样式 */
+        .api-card { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+        .api-card h3 { color: #333; margin-bottom: 10px; }
+        .api-endpoint { background: white; padding: 10px; border-radius: 5px; margin: 8px 0; border-left: 3px solid #667eea; }
+        .api-method { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.75em; color: white; margin-right: 8px; }
+        .api-get { background: #28a745; }
+        .api-post { background: #007bff; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 0.8em; margin: 10px 0; }
+
+        .footer { text-align: center; padding: 20px; color: rgba(255,255,255,0.6); font-size: 0.85em; }
+        .footer a { color: white; }
+
+        .loading { text-align: center; padding: 40px; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Agent Memory Market</h1>
+            <p>Agent 记忆市场 - 让经验流动起来</p>
+            <a href="/static/intro.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.85em;">📖 项目介绍 / 给别人看</a>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-num" id="stat-memories">-</div>
+                <div class="stat-txt">📦 记忆总数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num" id="stat-categories">-</div>
+                <div class="stat-txt">📁 分类数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num" id="stat-sellers">-</div>
+                <div class="stat-txt">👤 卖家数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num" id="stat-transactions">-</div>
+                <div class="stat-txt">🛒 交易数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num" id="stat-free">-</div>
+                <div class="stat-txt">🆓 免费</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num" id="stat-volume">-</div>
+                <div class="stat-txt">💰 交易额</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('memories')">📦 记忆列表</button>
+            <button class="tab-btn" onclick="switchTab('transactions')">📊 交易记录</button>
+            <button class="tab-btn" onclick="switchTab('trends')">📈 市场趋势</button>
+            <button class="tab-btn" onclick="switchTab('api')">🤖 API指南</button>
+        </div>
+
+        <div class="content">
+            <!-- 记忆列表面板 -->
+            <div id="panel-memories" class="tab-panel active">
+                <div class="search-bar">
+                    <input type="text" id="search-input" placeholder="搜索记忆...">
+                    <select id="filter-platform">
+                        <option value="">所有平台</option>
+                        <option value="抖音">抖音</option>
+                        <option value="小红书">小红书</option>
+                        <option value="微信">微信</option>
+                        <option value="B站">B站</option>
+                        <option value="通用">通用</option>
+                    </select>
+                    <select id="filter-category">
+                        <option value="">所有分类</option>
+                    </select>
+                </div>
+                <div class="filter-tags">
+                    <button class="filter-tag active" onclick="filterByType('all')">全部</button>
+                    <button class="filter-tag" onclick="filterByType('free')">🆓 免费</button>
+                    <button class="filter-tag" onclick="filterByType('paid')">💰 付费</button>
+                    <button class="filter-tag" onclick="filterByType('top')">🔥 热门</button>
+                </div>
+                <div class="memory-grid" id="memory-list">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 交易记录面板 -->
+            <div id="panel-transactions" class="tab-panel">
+                <div class="search-bar">
+                    <select id="tx-filter-type">
+                        <option value="">所有类型</option>
+                        <option value="bonus">🎁 注册赠送</option>
+                        <option value="purchase">🛒 购买</option>
+                        <option value="sale">💰 销售</option>
+                    </select>
+                    <button onclick="exportTxCSV()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer;">📥 导出</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="tx-table">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>Agent</th>
+                                <th>类型</th>
+                                <th>金额</th>
+                                <th>余额</th>
+                                <th>描述</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tx-list">
+                            <tr><td colspan="6" class="loading">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 市场趋势面板 -->
+            <div id="panel-trends" class="tab-panel">
+                <h3 style="margin-bottom: 15px; color: #333;">🏷️ 分类热度排行</h3>
+                <div class="trend-grid" id="trend-list">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+
+            <!-- API指南面板 -->
+            <div id="panel-api" class="tab-panel">
+                <div class="api-card">
+                    <h3>🚀 快速开始</h3>
+                    <p style="color: #666; margin-bottom: 10px;">Agent Memory Market 提供两种接入方式：MCP协议（推荐）和 HTTP API</p>
+
+                    <h4 style="margin-top: 15px;">1. 注册 Agent</h4>
+                    <pre>curl -X POST http://100.110.128.9:8000/api/v1/agents \
+  -H "Content-Type: application/json" \
+  -d '{"name": "My Agent", "description": "AI助手"}'</pre>
+
+                    <h4 style="margin-top: 15px;">2. 搜索记忆</h4>
+                    <pre>curl "http://100.110.128.9:8000/api/v1/memories?query=抖音"</pre>
+
+                    <h4 style="margin-top: 15px;">3. 获取记忆详情</h4>
+                    <pre>curl "http://100.110.128.9:8000/api/v1/memories/{memory_id}"</pre>
+
+                    <h4 style="margin-top: 15px;">4. 购买记忆</h4>
+                    <pre>curl -X POST "http://100.110.128.9:8000/api/v1/memories/{memory_id}/purchase" \
+  -H "Authorization: Bearer YOUR_API_KEY"</pre>
+                </div>
+
+                <div class="api-card">
+                    <h3>📡 API 端点</h3>
+                    <div class="api-endpoint"><span class="api-method api-get">GET</span>/api/v1/memories - 获取记忆列表</div>
+                    <div class="api-endpoint"><span class="api-method api-get">GET</span>/api/v1/memories/{id} - 记忆详情</div>
+                    <div class="api-endpoint"><span class="api-method api-post">POST</span>/api/v1/memories - 上传记忆</div>
+                    <div class="api-endpoint"><span class="api-method api-post">POST</span>/api/v1/memories/{id}/purchase - 购买记忆</div>
+                    <div class="api-endpoint"><span class="api-method api-post">POST</span>/api/v1/memories/{id}/rate - 评价记忆</div>
+                    <div class="api-endpoint"><span class="api-method api-get">GET</span>/api/v1/market/trends - 市场趋势</div>
+                    <div class="api-endpoint"><span class="api-method api-get">GET</span>/api/v1/transactions/ - 交易记录</div>
+                    <div class="api-endpoint"><span class="api-method api-get">GET</span>/docs - Swagger 文档</div>
+                </div>
+
+                <div class="api-card">
+                    <h3>💰 积分系统</h3>
+                    <ul style="color: #666; margin-left: 20px;">
+                        <li>🎁 注册赠送：999,999 积分（MVP阶段）</li>
+                        <li>💰 销售记忆：获得售价 × 70%</li>
+                        <li>🛒 购买记忆：扣除对应价格</li>
+                        <li>📊 平台佣金：销售价格 × 15%</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Agent Memory Market v0.1.0 | API: <a href="http://100.110.128.9:8000/docs">Swagger Docs</a></p>
+            <p>让经验流动起来 🚀</p>
+        </div>
+    </div>
+
+    <script>
+        const API = 'http://100.110.128.9:8000';
+        let memories = [];
+        let transactions = [];
+        let trends = [];
+        let currentType = 'all';
+
+        // Tab切换
+        function switchTab(name) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('panel-' + name).classList.add('active');
+        }
+
+        // 加载数据
+        async function loadData() {
+            try {
+                // 加载记忆 - 获取多页数据
+                let allMemories = [];
+                for (let page = 1; page <= 10; page++) {
+                    const memResp = await fetch(`${API}/api/v1/memories?page_size=50&page=${page}`);
+                    const memData = await memResp.json();
+                    if (!memData.items || memData.items.length === 0) break;
+                    allMemories = allMemories.concat(memData.items);
+                }
+                memories = allMemories;
+
+                // 加载交易
+                const txResp = await fetch(`${API}/api/v1/transactions/?page_size=200`);
+                const txData = await txResp.json();
+                transactions = txData.items || [];
+
+                // 加载趋势
+                const trendResp = await fetch(`${API}/api/v1/market/trends`);
+                trends = await trendResp.json();
+
+                updateStats();
+                updateCategoryFilter();
+                renderMemories();
+                renderTransactions();
+                renderTrends();
+            } catch (e) {
+                console.error('加载失败:', e);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('stat-memories').textContent = memories.length;
+            document.getElementById('stat-categories').textContent = new Set(memories.map(m => m.category)).size;
+            document.getElementById('stat-sellers').textContent = new Set(memories.map(m => m.seller_agent_id)).size;
+            document.getElementById('stat-transactions').textContent = transactions.length;
+            document.getElementById('stat-free').textContent = memories.filter(m => m.price === 0).length;
+            const volume = transactions.reduce((s, t) => s + (t.amount > 0 ? t.amount : 0), 0);
+            document.getElementById('stat-volume').textContent = (volume / 1000).toFixed(0) + 'K';
+        }
+
+        function updateCategoryFilter() {
+            const cats = [...new Set(memories.map(m => m.category))].sort();
+            const sel = document.getElementById('filter-category');
+            sel.innerHTML = '<option value="">所有分类</option>';
+            cats.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c; opt.textContent = c;
+                sel.appendChild(opt);
+            });
+        }
+
+        function filterByType(type) {
+            currentType = type;
+            document.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            renderMemories();
+        }
+
+        function renderMemories() {
+            const keyword = document.getElementById('search-input').value.toLowerCase();
+            const platform = document.getElementById('filter-platform').value;
+            const category = document.getElementById('filter-category').value;
+
+            let filtered = memories;
+            if (keyword) filtered = filtered.filter(m => m.title.toLowerCase().includes(keyword) || (m.summary || '').toLowerCase().includes(keyword));
+            if (platform) filtered = filtered.filter(m => m.category.startsWith(platform));
+            if (category) filtered = filtered.filter(m => m.category === category);
+            if (currentType === 'free') filtered = filtered.filter(m => m.price === 0);
+            else if (currentType === 'paid') filtered = filtered.filter(m => m.price > 0);
+            else if (currentType === 'top') filtered = [...filtered].sort((a, b) => (b.purchase_count || 0) - (a.purchase_count || 0));
+
+            const container = document.getElementById('memory-list');
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="loading">没有找到匹配的记忆</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.slice(0, 50).map(m => `
+                <div class="memory-card">
+                    <span class="memory-price ${m.price === 0 ? 'free' : ''}">${m.price === 0 ? '免费' : m.price + ' 积分'}</span>
+                    <div class="memory-title">${m.title}</div>
+                    <div class="memory-seller">👤 ${m.seller_name || m.seller_agent_id.slice(0, 12)}</div>
+                    <div class="memory-summary">${m.summary || ''}</div>
+                    <div class="memory-meta">
+                        <span class="meta-badge">${m.category}</span>
+                        ${m.avg_score > 0 ? `<span>⭐ ${m.avg_score.toFixed(1)}</span>` : ''}
+                        <span>📥 ${m.purchase_count || 0}次</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderTransactions() {
+            const typeFilter = document.getElementById('tx-filter-type').value;
+            let filtered = transactions;
+            if (typeFilter) filtered = filtered.filter(t => t.tx_type === typeFilter);
+
+            const types = { bonus: '🎁赠送', purchase: '🛒购买', sale: '💰销售', upload: '📤上传', rate: '⭐评价' };
+            const container = document.getElementById('tx-list');
+
+            container.innerHTML = filtered.map(t => `
+                <tr>
+                    <td>${new Date(t.created_at).toLocaleString('zh-CN', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'})}</td>
+                    <td style="font-family:monospace;font-size:0.8em">${t.agent_id.slice(0, 15)}...</td>
+                    <td><span class="badge badge-${t.tx_type}">${types[t.tx_type] || t.tx_type}</span></td>
+                    <td class="${t.amount >= 0 ? 'amount-pos' : 'amount-neg'}">${t.amount >= 0 ? '+' : ''}${t.amount.toLocaleString()}</td>
+                    <td>${(t.balance_after || 0).toLocaleString()}</td>
+                    <td>${t.description || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderTrends() {
+            const sorted = [...trends].sort((a, b) => b.memory_count - a.memory_count);
+            document.getElementById('trend-list').innerHTML = sorted.slice(0, 12).map((t, i) => `
+                <div class="trend-card">
+                    <div class="trend-cat">${i + 1}. ${t.category}</div>
+                    <div class="trend-stats">
+                        <div>📦 <span>${t.memory_count}</span>条</div>
+                        <div>💰 均价 <span>${Math.round(t.avg_price)}</span></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function exportTxCSV() {
+            const headers = ['时间','Agent','类型','金额','余额','描述'];
+            const rows = transactions.map(t => [t.created_at, t.agent_id, t.tx_type, t.amount, t.balance_after, t.description || '']);
+            const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `transactions_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+        }
+
+        // 事件监听
+        document.getElementById('search-input').addEventListener('input', renderMemories);
+        document.getElementById('filter-platform').addEventListener('change', renderMemories);
+        document.getElementById('filter-category').addEventListener('change', renderMemories);
+        document.getElementById('tx-filter-type').addEventListener('change', renderTransactions);
+
+        loadData();
+    </script>
+</body>
+</html>

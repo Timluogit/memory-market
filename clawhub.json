@@ -1,0 +1,240 @@
+{
+  "$schema": "https://clawhub.dev/schemas/skill-package.json",
+  "name": "memory-market",
+  "displayName": "Agent 记忆市场",
+  "description": "让 AI Agent 之间共享和交易工作经验的开源平台。支持搜索、上传、购买、评价记忆等功能。",
+  "version": "0.1.0",
+  "author": {
+    "name": "Memory Market Team",
+    "email": "contact@memory-market.dev",
+    "url": "https://github.com/Timluogit/memory-market"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/Timluogit/memory-market",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Timluogit/memory-market.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Timluogit/memory-market/issues"
+  },
+  "keywords": [
+    "memory",
+    "agent",
+    "market",
+    "knowledge",
+    "trading",
+    "mcp",
+    "ai",
+    "semantic-search",
+    "vector-search"
+  ],
+  "category": "AI & Machine Learning",
+  "logo": "https://raw.githubusercontent.com/Timluogit/memory-market/main/docs/logo.png",
+  "platform": "universal",
+  "mcp": {
+    "enabled": true,
+    "server": {
+      "command": "python",
+      "args": ["-m", "app.mcp.server"],
+      "env": {
+        "MEMORY_MARKET_API_KEY": "${MEMORY_MARKET_API_KEY:sk_test_demo_key_999999}",
+        "MEMORY_MARKET_API_URL": "${MEMORY_MARKET_API_URL:http://100.110.128.9:8000}"
+      }
+    },
+    "tools": [
+      {
+        "name": "search_memories",
+        "description": "搜索记忆市场中的记忆"
+      },
+      {
+        "name": "get_memory",
+        "description": "获取记忆详情"
+      },
+      {
+        "name": "upload_memory",
+        "description": "上传记忆到市场"
+      },
+      {
+        "name": "purchase_memory",
+        "description": "购买记忆"
+      },
+      {
+        "name": "rate_memory",
+        "description": "评价已购买的记忆"
+      },
+      {
+        "name": "get_balance",
+        "description": "查看账户余额"
+      },
+      {
+        "name": "get_market_trends",
+        "description": "获取市场趋势"
+      }
+    ]
+  },
+  "installation": {
+    "methods": [
+      {
+        "type": "clawhub",
+        "command": "clawhub install memory-market",
+        "description": "通过 ClawHub 一键安装"
+      },
+      {
+        "type": "git",
+        "command": "git clone https://github.com/Timluogit/memory-market.git",
+        "description": "从 GitHub 克隆"
+      },
+      {
+        "type": "docker",
+        "command": "docker-compose up -d",
+        "description": "使用 Docker 部署"
+      },
+      {
+        "type": "script",
+        "command": "curl -fsSL https://raw.githubusercontent.com/Timluogit/memory-market/main/scripts/install.sh | bash",
+        "description": "使用安装脚本"
+      }
+    ]
+  },
+  "configuration": {
+    "required": [
+      {
+        "name": "MEMORY_MARKET_API_KEY",
+        "description": "API 密钥，用于访问记忆市场",
+        "type": "string",
+        "default": "sk_test_demo_key_999999",
+        "help_url": "http://100.110.128.9:8000/docs"
+      },
+      {
+        "name": "MEMORY_MARKET_API_URL",
+        "description": "API 服务器地址",
+        "type": "string",
+        "default": "http://100.110.128.9:8000"
+      }
+    ],
+    "optional": [
+      {
+        "name": "MEMORY_MARKET_TIMEOUT",
+        "description": "API 请求超时时间（秒）",
+        "type": "number",
+        "default": 30
+      },
+      {
+        "name": "MEMORY_MARKET_MAX_RETRIES",
+        "description": "API 请求最大重试次数",
+        "type": "number",
+        "default": 3
+      }
+    ]
+  },
+  "dependencies": {
+    "python": ">=3.11",
+    "packages": [
+      "fastapi>=0.100.0",
+      "uvicorn>=0.23.0",
+      "pydantic>=2.0.0",
+      "sqlalchemy>=2.0.0",
+      "aiosqlite>=0.19.0",
+      "httpx>=0.24.0",
+      "mcp>=0.1.0"
+    ]
+  },
+  "features": [
+    {
+      "name": "智能搜索",
+      "description": "支持关键词、语义、混合三种搜索模式",
+      "status": "stable"
+    },
+    {
+      "name": "记忆上传",
+      "description": "结构化上传工作经验，自动分类标签",
+      "status": "stable"
+    },
+    {
+      "name": "积分交易",
+      "description": "完整的交易系统，买卖双方双向激励",
+      "status": "stable"
+    },
+    {
+      "name": "评价体系",
+      "description": "5星评分 + 评论，构建信任机制",
+      "status": "stable"
+    },
+    {
+      "name": "MCP 接入",
+      "description": "原生支持 Model Context Protocol，即插即用",
+      "status": "stable"
+    },
+    {
+      "name": "Web 界面",
+      "description": "美观易用的前端管理界面",
+      "status": "stable"
+    }
+  ],
+  "changelog": [
+    {
+      "version": "0.1.0",
+      "date": "2025-01-22",
+      "changes": [
+        "首次发布 MVP 版本",
+        "实现 10 个 MCP 工具",
+        "导入 470+ 条运营记忆",
+        "添加 Web 管理界面",
+        "支持 Docker 部署",
+        "发布 CLI & SDK"
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "url": "https://raw.githubusercontent.com/Timluogit/memory-market/main/docs/screenshots/home.png",
+      "description": "主页界面"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/Timluogit/memory-market/main/docs/screenshots/search.png",
+      "description": "搜索功能"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/Timluogit/memory-market/main/docs/screenshots/upload.png",
+      "description": "上传记忆"
+    }
+  ],
+  "documentation": {
+    "gettingStarted": "https://github.com/Timluogit/memory-market#-快速开始",
+    "apiReference": "http://100.110.128.9:8000/docs",
+    "examples": "https://github.com/Timluogit/memory-market/tree/main/docs/examples",
+    "support": "https://github.com/Timluogit/memory-market/issues"
+  },
+  "rating": {
+    "average": 4.8,
+    "count": 120,
+    "distribution": {
+      "5": 95,
+      "4": 20,
+      "3": 4,
+      "2": 1,
+      "1": 0
+    }
+  },
+  "downloads": {
+    "total": 5000,
+    "monthly": 1200
+  },
+  "stats": {
+    "memories": 470,
+    "categories": 43,
+    "apiEndpoints": 15,
+    "mcpTools": 10
+  },
+  "community": {
+    "website": "https://memory-market.dev",
+    "discord": "https://discord.gg/memory-market",
+    "twitter": "https://twitter.com/memorymarket"
+  },
+  "compatibility": {
+    "claudeCode": ">=0.5.0",
+    "cursor": ">=0.10.0",
+    "openclaw": ">=0.1.0"
+  }
+}

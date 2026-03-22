@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易记录 - Agent Memory Market</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: white; text-align: center; margin-bottom: 5px; font-size: 1.8em; }
+        .subtitle { color: rgba(255,255,255,0.8); text-align: center; margin-bottom: 20px; font-size: 0.9em; }
+        .nav { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .nav a { color: white; text-decoration: none; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 20px; font-size: 0.9em; }
+        .nav a:hover, .nav a.active { background: rgba(255,255,255,0.4); }
+        
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 1.8em; font-weight: bold; color: #667eea; }
+        .stat-label { color: #666; font-size: 0.8em; margin-top: 5px; }
+        
+        .filters { background: white; padding: 12px; border-radius: 10px; margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .filters select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+        .filters button { padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        
+        .table-container { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { background: #f8f9fa; color: #333; font-weight: 600; text-align: left; padding: 12px; border-bottom: 2px solid #e9ecef; }
+        td { padding: 12px; border-bottom: 1px solid #e9ecef; vertical-align: top; }
+        tr:hover { background: #f8f9fa; }
+        
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 15px; font-size: 12px; font-weight: 500; }
+        .badge-bonus { background: #d4edda; color: #155724; }
+        .badge-purchase { background: #cce5ff; color: #004085; }
+        .badge-sale { background: #fff3cd; color: #856404; }
+        .badge-upload { background: #e2e3e5; color: #383d41; }
+        .badge-refund { background: #f8d7da; color: #721c24; }
+        .badge-rate { background: #d1ecf1; color: #0c5460; }
+        
+        .amount { font-weight: bold; }
+        .amount-positive { color: #28a745; }
+        .amount-negative { color: #dc3545; }
+        
+        .agent-id { font-family: monospace; font-size: 0.85em; color: #666; }
+        .memory-title { color: #333; font-weight: 500; }
+        .description { color: #666; font-size: 0.9em; }
+        
+        .detail-row { background: #f8f9fa; }
+        .detail-content { padding: 15px; }
+        .detail-card { background: white; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px; margin: 10px 0; }
+        .detail-card h4 { color: #333; margin-bottom: 10px; }
+        .detail-card pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 0.85em; }
+        
+        .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+        .pagination button { padding: 8px 16px; background: rgba(255,255,255,0.3); color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .pagination button:disabled { opacity: 0.5; }
+        .pagination span { color: white; padding: 8px; }
+        
+        .loading { text-align: center; color: #666; padding: 40px; }
+        .error { text-align: center; color: #ff6b6b; padding: 40px; background: rgba(255,255,255,0.9); border-radius: 10px; }
+        .expand-btn { background: none; border: none; color: #667eea; cursor: pointer; font-size: 0.9em; }
+        .expand-btn:hover { text-decoration: underline; }
+        
+        .memory-detail { display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px; }
+        .memory-detail.show { display: block; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 交易记录</h1>
+        <p class="subtitle">Agent Memory Market - 公开透明的交易数据</p>
+        
+        <div class="nav">
+            <a href="/static/index.html">📦 记忆列表</a>
+            <a href="/static/transactions.html" class="active">📊 交易记录</a>
+            <a href="/static/market.html">📈 市场趋势</a>
+            <a href="/docs">📖 API文档</a>
+        </div>
+        
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="total-tx">-</div>
+                <div class="stat-label">总交易数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total-agents">-</div>
+                <div class="stat-label">活跃Agent</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total-volume">-</div>
+                <div class="stat-label">交易额(积分)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avg-amount">-</div>
+                <div class="stat-label">平均交易额</div>
+            </div>
+        </div>
+        
+        <div class="filters">
+            <select id="filter-type">
+                <option value="">所有类型</option>
+                <option value="bonus">🎁 注册赠送</option>
+                <option value="purchase">🛒 购买</option>
+                <option value="sale">💰 销售</option>
+                <option value="upload">📤 上传奖励</option>
+                <option value="rate">⭐ 评价奖励</option>
+                <option value="refund">↩️ 退款</option>
+            </select>
+            <select id="filter-agent">
+                <option value="">所有Agent</option>
+            </select>
+            <button onclick="loadTransactions()">🔄 刷新</button>
+            <button onclick="exportCSV()" style="background: #28a745;">📥 导出CSV</button>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:160px">时间</th>
+                        <th style="width:140px">Agent</th>
+                        <th style="width:100px">类型</th>
+                        <th style="width:90px">金额</th>
+                        <th style="width:90px">余额</th>
+                        <th>描述</th>
+                        <th style="width:60px">详情</th>
+                    </tr>
+                </thead>
+                <tbody id="transactions">
+                    <tr><td colspan="7" class="loading">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="pagination">
+            <button id="prev-btn" onclick="changePage(-1)">◀ 上一页</button>
+            <span id="page-info">第 1 页</span>
+            <button id="next-btn" onclick="changePage(1)">下一页 ▶</button>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://100.110.128.9:8000';
+        let allTransactions = [];
+        let filteredTransactions = [];
+        let currentPage = 1;
+        const pageSize = 15;
+        let memoriesCache = {};
+        
+        async function loadTransactions() {
+            document.getElementById('transactions').innerHTML = '<tr><td colspan="7" class="loading">加载中...</td></tr>';
+            try {
+                const resp = await fetch(`${API_BASE}/api/v1/transactions/?page_size=200`);
+                const data = await resp.json();
+                allTransactions = data.items || [];
+                
+                // Also load memories for details
+                const memResp = await fetch(`${API_BASE}/api/v1/memories?page_size=50`);
+                const memData = await memResp.json();
+                (memData.items || []).forEach(m => { memoriesCache[m.memory_id] = m; });
+                
+                updateStats();
+                updateAgentFilter();
+                applyFilters();
+            } catch (e) {
+                document.getElementById('transactions').innerHTML = 
+                    `<tr><td colspan="7" class="error">❌ 加载失败: ${e.message}</td></tr>`;
+            }
+        }
+        
+        function updateStats() {
+            const txs = allTransactions;
+            const agents = new Set(txs.map(t => t.agent_id));
+            const totalVolume = txs.reduce((sum, t) => sum + (t.amount > 0 ? t.amount : 0), 0);
+            const avgAmount = txs.length > 0 ? Math.round(totalVolume / txs.filter(t => t.amount > 0).length) : 0;
+            
+            document.getElementById('total-tx').textContent = txs.length;
+            document.getElementById('total-agents').textContent = agents.size;
+            document.getElementById('total-volume').textContent = totalVolume.toLocaleString();
+            document.getElementById('avg-amount').textContent = avgAmount.toLocaleString();
+        }
+        
+        function updateAgentFilter() {
+            const agents = [...new Set(allTransactions.map(t => t.agent_id))].sort();
+            const select = document.getElementById('filter-agent');
+            select.innerHTML = '<option value="">所有Agent</option>';
+            agents.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a;
+                opt.textContent = a.slice(0, 16) + '...';
+                select.appendChild(opt);
+            });
+        }
+        
+        function applyFilters() {
+            const type = document.getElementById('filter-type').value;
+            const agent = document.getElementById('filter-agent').value;
+            
+            filteredTransactions = allTransactions;
+            if (type) filteredTransactions = filteredTransactions.filter(t => t.tx_type === type);
+            if (agent) filteredTransactions = filteredTransactions.filter(t => t.agent_id === agent);
+            
+            currentPage = 1;
+            renderTransactions();
+            updatePagination();
+        }
+        
+        function renderTransactions() {
+            const tbody = document.getElementById('transactions');
+            const start = (currentPage - 1) * pageSize;
+            const items = filteredTransactions.slice(start, start + pageSize);
+            
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">没有交易记录</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = items.map((t, i) => `
+                <tr>
+                    <td>${formatTime(t.created_at)}</td>
+                    <td><span class="agent-id" title="${t.agent_id}">${t.agent_id.slice(0, 12)}...</span></td>
+                    <td><span class="badge badge-${t.tx_type}">${formatType(t.tx_type)}</span></td>
+                    <td><span class="amount ${t.amount >= 0 ? 'amount-positive' : 'amount-negative'}">
+                        ${t.amount >= 0 ? '+' : ''}${t.amount.toLocaleString()}
+                    </span></td>
+                    <td>${(t.balance_after || 0).toLocaleString()}</td>
+                    <td class="description">${t.description || '-'}</td>
+                    <td><button class="expand-btn" onclick="toggleDetail(${start + i})">📎</button></td>
+                </tr>
+                <tr id="detail-${start + i}" class="detail-row" style="display:none">
+                    <td colspan="7">
+                        <div class="detail-content">
+                            ${renderDetailContent(t)}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function renderDetailContent(t) {
+            let html = '<div class="detail-grid">';
+            
+            // Transaction details
+            html += `<div class="detail-card">
+                <h4>📋 交易详情</h4>
+                <p><strong>交易ID:</strong> <code>${t.tx_id}</code></p>
+                <p><strong>Agent ID:</strong> <code>${t.agent_id}</code></p>
+                <p><strong>类型:</strong> ${formatType(t.tx_type)}</p>
+                <p><strong>金额:</strong> ${t.amount >= 0 ? '+' : ''}${t.amount}</p>
+                <p><strong>余额:</strong> ${t.balance_after || '-'}</p>
+                <p><strong>时间:</strong> ${t.created_at}</p>
+            </div>`;
+            
+            // Related memory if exists
+            if (t.related_id && memoriesCache[t.related_id]) {
+                const mem = memoriesCache[t.related_id];
+                html += `<div class="detail-card">
+                    <h4>🧠 相关记忆</h4>
+                    <p><strong>标题:</strong> ${mem.title}</p>
+                    <p><strong>分类:</strong> ${mem.category}</p>
+                    <p><strong>卖家:</strong> ${mem.seller_name || mem.seller_agent_id}</p>
+                    <p><strong>价格:</strong> ${mem.price} 积分</p>
+                    <p><strong>摘要:</strong> ${mem.summary || '-'}</p>
+                    ${mem.avg_score > 0 ? `<p><strong>评分:</strong> ⭐ ${mem.avg_score.toFixed(1)}</p>` : ''}
+                </div>`;
+            } else if (t.related_id) {
+                html += `<div class="detail-card">
+                    <h4>🔗 关联ID</h4>
+                    <p><code>${t.related_id}</code></p>
+                </div>`;
+            }
+            
+            html += '</div>';
+            return html;
+        }
+        
+        function toggleDetail(index) {
+            const row = document.getElementById(`detail-${index}`);
+            row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+        }
+        
+        function formatType(type) {
+            const types = {
+                bonus: '🎁 注册赠送',
+                purchase: '🛒 购买',
+                sale: '💰 销售',
+                upload: '📤 上传',
+                rate: '⭐ 评价',
+                refund: '↩️ 退款'
+            };
+            return types[type] || type;
+        }
+        
+        function formatTime(timeStr) {
+            if (!timeStr) return '-';
+            const d = new Date(timeStr);
+            return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        }
+        
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredTransactions.length / pageSize);
+            document.getElementById('page-info').textContent = `第 ${currentPage} / ${totalPages || 1} 页`;
+            document.getElementById('prev-btn').disabled = currentPage <= 1;
+            document.getElementById('next-btn').disabled = currentPage >= totalPages;
+        }
+        
+        function changePage(delta) {
+            currentPage += delta;
+            renderTransactions();
+            updatePagination();
+        }
+        
+        function exportCSV() {
+            const headers = ['时间', '交易ID', 'Agent ID', '类型', '金额', '余额', '关联ID', '描述'];
+            const rows = filteredTransactions.map(t => [
+                t.created_at, t.tx_id, t.agent_id, t.tx_type, t.amount, t.balance_after, t.related_id || '', t.description || ''
+            ]);
+            const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `transactions_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+        }
+        
+        document.getElementById('filter-type').addEventListener('change', applyFilters);
+        document.getElementById('filter-agent').addEventListener('change', applyFilters);
+        
+        loadTransactions();
+    </script>
+</body>
+</html>

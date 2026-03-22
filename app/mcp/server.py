@@ -26,12 +26,14 @@ async def api_request(method: str, path: str, data: dict = None) -> dict:
     async with httpx.AsyncClient() as client:
         headers = {"X-API-Key": get_api_key()}
         url = f"{API_BASE}{path}"
-        
+
         if method == "GET":
             resp = await client.get(url, headers=headers, params=data)
         elif method == "POST":
             resp = await client.post(url, headers=headers, json=data)
-        
+        elif method == "PUT":
+            resp = await client.put(url, headers=headers, json=data)
+
         resp.raise_for_status()
         return resp.json()
 
@@ -194,6 +196,82 @@ async def list_tools() -> list[Tool]:
                     }
                 }
             }
+        ),
+        Tool(
+            name="update_memory",
+            description="更新已有记忆。只能更新自己上传的记忆。",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "memory_id": {
+                        "type": "string",
+                        "description": "记忆ID"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "新的标题"
+                    },
+                    "summary": {
+                        "type": "string",
+                        "description": "新的摘要"
+                    },
+                    "content": {
+                        "type": "object",
+                        "description": "新的内容（JSON格式）"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "新的标签列表"
+                    },
+                    "price": {
+                        "type": "integer",
+                        "description": "新的价格（分），100分=1元"
+                    }
+                },
+                "required": ["memory_id"]
+            }
+        ),
+        Tool(
+            name="get_my_memories",
+            description="获取我上传的所有记忆列表，包含销售统计。",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "page": {
+                        "type": "integer",
+                        "description": "页码，默认1"
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "description": "每页数量，默认20"
+                    }
+                }
+            }
+        ),
+        Tool(
+            name="verify_memory",
+            description="验证记忆质量。验证者不能验证自己的记忆，每个记忆只能验证一次，验证成功获得5积分奖励。",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "memory_id": {
+                        "type": "string",
+                        "description": "记忆ID"
+                    },
+                    "score": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 5,
+                        "description": "验证分数 1-5"
+                    },
+                    "comment": {
+                        "type": "string",
+                        "description": "验证评论（可选）"
+                    }
+                },
+                "required": ["memory_id", "score"]
+            }
         )
     ]
 
@@ -234,7 +312,21 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         elif name == "get_market_trends":
             result = await api_request("GET", "/market/trends", arguments)
             return [TextContent(type="text", text=format_trends(result))]
-        
+
+        elif name == "update_memory":
+            memory_id = arguments.pop("memory_id")
+            result = await api_request("PUT", f"/memories/{memory_id}", arguments)
+            return [TextContent(type="text", text=f"✅ 记忆更新成功\nID: {result['memory_id']}\n标题: {result['title']}")]
+
+        elif name == "get_my_memories":
+            result = await api_request("GET", "/agents/me/memories", arguments)
+            return [TextContent(type="text", text=format_my_memories(result))]
+
+        elif name == "verify_memory":
+            memory_id = arguments["memory_id"]
+            result = await api_request("POST", f"/memories/{memory_id}/verify", arguments)
+            return [TextContent(type="text", text=f"✅ 验证成功\n记忆ID: {result['memory_id']}\n验证分数: {result['verification_score']:.2f}\n验证次数: {result['verification_count']}\n获得奖励: {result['reward_credits']}积分")]
+
         else:
             return [TextContent(type="text", text=f"未知工具: {name}")]
     
@@ -292,12 +384,35 @@ def format_trends(trends: list) -> str:
     """格式化趋势数据"""
     if not trends:
         return "📊 暂无趋势数据"
-    
+
     lines = ["📊 热门分类\n"]
     for i, t in enumerate(trends, 1):
         lines.append(f"{i}. {t['category']}")
         lines.append(f"   记忆: {t['memory_count']}条 | 销量: {t['total_sales']} | 均价: {int(t['avg_price'] or 0)}积分")
         lines.append("")
+    return "\n".join(lines)
+
+def format_my_memories(result: dict) -> str:
+    """格式化我的记忆列表"""
+    items = result.get("items", [])
+    stats = result.get("stats", {})
+    total = result.get("total", 0)
+
+    if not items:
+        return "📦 您还没有上传任何记忆"
+
+    lines = [
+        f"📦 我的记忆库（共 {total} 条）",
+        f"💰 销售统计: 总销量 {stats.get('total_sales', 0)} 次 | 总收入 {stats.get('total_earned', 0)} 积分",
+        ""
+    ]
+
+    for i, item in enumerate(items, 1):
+        lines.append(f"{i}. 【{item.get('format_type', '')}】{item['title']}")
+        lines.append(f"   分类: {item['category']} | 价格: {item['price']}积分")
+        lines.append(f"   销量: {item['purchase_count']}次 | 评分: {item['avg_score']:.1f}⭐")
+        lines.append("")
+
     return "\n".join(lines)
 
 # ============ 启动 ============

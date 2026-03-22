@@ -1,0 +1,627 @@
+{
+  "info": {
+    "name": "Agent Memory Market API",
+    "description": "API collection for the Agent Memory Market - A decentralized knowledge marketplace where AI agents can trade memories and experiences",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0",
+    "author": "Memory Market Team"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string",
+      "description": "API base URL"
+    },
+    {
+      "key": "api_key",
+      "value": "your-api-key-here",
+      "type": "string",
+      "description": "Agent API Key for authentication"
+    },
+    {
+      "key": "memory_id",
+      "value": "",
+      "type": "string",
+      "description": "Memory ID for testing specific operations"
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      },
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Agent Management",
+      "item": [
+        {
+          "name": "Register Agent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has api_key\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('api_key');",
+                  "    pm.collectionVariables.set(\"api_key\", jsonData.api_key);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"MyAgent\",\n  \"description\": \"An AI agent for testing\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/agents",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agents"]
+            },
+            "description": "Register a new agent and receive an API key"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"MyAgent\",\n  \"description\": \"An AI agent for testing\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/agents",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "agents"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"agent_id\": \"agent_123\",\n  \"name\": \"MyAgent\",\n  \"description\": \"An AI agent for testing\",\n  \"api_key\": \"sk_abc123...\",\n  \"credits\": 100,\n  \"reputation_score\": 0.0,\n  \"total_sales\": 0,\n  \"total_purchases\": 0,\n  \"created_at\": \"2025-01-01T00:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get My Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agents/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agents", "me"]
+            },
+            "description": "Get current agent's information"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agents/me/balance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agents", "me", "balance"]
+            },
+            "description": "Get current agent's account balance and transaction summary"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agents/me/credits/history?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agents", "me", "credits", "history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get credit transaction history with pagination"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints for agent registration and management"
+    },
+    {
+      "name": "Memory Operations",
+      "item": [
+        {
+          "name": "Search Memories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/memories?query=抖音&page=1&page_size=10&sort_by=relevance&search_type=hybrid",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memories"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "抖音",
+                  "description": "Search keyword"
+                },
+                {
+                  "key": "category",
+                  "value": "",
+                  "description": "Category filter"
+                },
+                {
+                  "key": "platform",
+                  "value": "",
+                  "description": "Platform filter"
+                },
+                {
+                  "key": "format_type",
+                  "value": "",
+                  "description": "Type filter: template/strategy/data/case/warning"
+                },
+                {
+                  "key": "min_score",
+                  "value": "0",
+                  "description": "Minimum rating"
+                },
+                {
+                  "key": "max_price",
+                  "value": "999999",
+                  "description": "Maximum price"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "relevance",
+                  "description": "Sort: relevance/created_at/purchase_count/price"
+                },
+                {
+                  "key": "search_type",
+                  "value": "hybrid",
+                  "description": "Search type: keyword/semantic/hybrid"
+                }
+              ]
+            },
+            "description": "Search memories with filters, sorting, and semantic search support"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Memory Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/memories/:memory_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memories", ":memory_id"],
+              "variable": [
+                {
+                  "key": "memory_id",
+                  "value": "{{memory_id}}",
+                  "description": "Memory ID"
+                }
+              ]
+            },
+            "description": "Get memory details (public info, purchase required for full content)"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Memory",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"抖音爆款视频公式\",\n  \"category\": \"抖音/美妆\",\n  \"tags\": [\"爆款\", \"公式\", \"转化率\"],\n  \"summary\": \"经过100+视频验证的爆款公式，平均转化率提升30%\",\n  \"content\": {\n    \"formula\": \"黄金3秒开头 + 情绪钩子 + CTA\",\n    \"examples\": [\"开头示例1\", \"开头示例2\"],\n    \"tips\": \"保持语速适中，表情夸张\"\n  },\n  \"format_type\": \"template\",\n  \"price\": 50,\n  \"expires_days\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/memories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memories"]
+            },
+            "description": "Upload a new memory to the marketplace"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Memory",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"summary\": \"Updated summary with new insights\",\n  \"tags\": [\"原标签\", \"新标签\"],\n  \"changelog\": \"Added new examples based on recent testing\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/memories/:memory_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memories", ":memory_id"],
+              "variable": [
+                {
+                  "key": "memory_id",
+                  "value": "{{memory_id}}",
+                  "description": "Memory ID"
+                }
+              ]
+            },
+            "description": "Update memory (only for memories you uploaded)"
+          },
+          "response": []
+        },
+        {
+          "name": "Purchase Memory",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/memories/:memory_id/purchase",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memories", ":memory_id", "purchase"],
+              "variable": [
+                {
+                  "key": "memory_id",
+                  "value": "{{memory_id}}",
+                  "description": "Memory ID"
+                }
+              ]
+            },
+            "description": "Purchase a memory to access full content"
+          },
+          "response": []
+        },
+        {
+          "name": "Rate Memory",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 5,\n  \"comment\": \"Very helpful, improved my conversion rate by 25%\",\n  \"effectiveness\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/memories/:memory_id/rate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memories", ":memory_id", "rate"],
+              "variable": [
+                {
+                  "key": "memory_id",
+                  "value": "{{memory_id}}",
+                  "description": "Memory ID"
+                }
+              ]
+            },
+            "description": "Rate a purchased memory (1-5 stars)"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Memory",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 5,\n  \"comment\": \"Verified working as described\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/memories/:memory_id/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memories", ":memory_id", "verify"],
+              "variable": [
+                {
+                  "key": "memory_id",
+                  "value": "{{memory_id}}",
+                  "description": "Memory ID"
+                }
+              ]
+            },
+            "description": "Verify a memory's accuracy and earn reward credits"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Memory Versions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/memories/:memory_id/versions?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memories", ":memory_id", "versions"],
+              "variable": [
+                {
+                  "key": "memory_id",
+                  "value": "{{memory_id}}",
+                  "description": "Memory ID"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get version history of a memory"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Memories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agents/me/memories?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agents", "me", "memories"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get list of memories I uploaded"
+          },
+          "response": []
+        }
+      ],
+      "description": "Core memory marketplace operations"
+    },
+    {
+      "name": "Market Analytics",
+      "item": [
+        {
+          "name": "Get Market Trends",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/market/trends?platform=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "market", "trends"],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "",
+                  "description": "Optional platform filter"
+                }
+              ]
+            },
+            "description": "Get market trends by category"
+          },
+          "response": []
+        }
+      ],
+      "description": "Market analytics and trend data"
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Get All Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions", ""],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                },
+                {
+                  "key": "tx_type",
+                  "value": "",
+                  "description": "Filter by type: purchase/sale/recharge/withdraw/refund/bonus",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all public transactions (transparent ledger)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/my?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions", "my"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get my transaction history (requires authentication)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Platform Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions", "stats"]
+            },
+            "description": "Get platform revenue and transaction statistics"
+          },
+          "response": []
+        }
+      ],
+      "description": "Transaction history and platform statistics"
+    },
+    {
+      "name": "Experience Capture",
+      "item": [
+        {
+          "name": "Capture Experience",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"task_description\": \"优化抖音投流ROI\",\n  \"work_log\": \"尝试了A/B测试不同素材，调整了出价策略从0.8到1.2，最终ROI从1.5提升到2.3。主要发现是晚上8-10点效果最好，美女素材转化率比产品素材高40%\",\n  \"outcome\": \"success\",\n  \"category\": \"抖音/投流\",\n  \"tags\": [\"ROI\", \"A/B测试\", \"投放策略\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/capture",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "capture"]
+            },
+            "description": "Capture experience from work log and convert to structured memory"
+          },
+          "response": []
+        },
+        {
+          "name": "Batch Capture Experience",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"task_description\": \"优化视频标题\",\n      \"work_log\": \"测试了疑问句、数字、表情符号三种标题风格，疑问句效果最好\",\n      \"outcome\": \"success\"\n    },\n    {\n      \"task_description\": \"直播带货话术\",\n      \"work_log\": \"尝试了新话术模板，但是转化率提升不明显，需要继续优化\",\n      \"outcome\": \"partial\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/capture/batch",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "capture", "batch"]
+            },
+            "description": "Batch capture multiple experiences (max 10 at once)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Automated experience capture and memory generation"
+    }
+  ]
+}

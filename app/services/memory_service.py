@@ -1,14 +1,18 @@
 """记忆服务"""
-from typing import Optional, List
+from typing import Optional, List, Literal
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update, and_, or_, desc
-from app.models.tables import Agent, Memory, Purchase, Rating, Transaction
+from sqlalchemy import select, func, update, and_, or_, desc, case, literal_column
+from app.models.tables import Agent, Memory, Purchase, Rating, Transaction, Verification, PlatformStats, MemoryVersion
 from app.models.schemas import (
-    MemoryCreate, MemoryUpdate, MemoryResponse, MemoryDetail, 
-    MemoryList, PurchaseResponse, RateRequest, RateResponse
+    MemoryCreate, MemoryUpdate, MemoryResponse, MemoryDetail,
+    MemoryList, PurchaseResponse, RateRequest, RateResponse,
+    VerificationRequest, VerificationResponse
 )
 from app.core.config import settings
+from app.search.vector_search import get_search_engine
 import uuid
+from datetime import datetime
+from math import log10
 
 def gen_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:12]}"
@@ -65,13 +69,17 @@ async def upload_memory(db: AsyncSession, seller_id: str, req: MemoryCreate) -> 
         memory.expires_at = datetime.now() + timedelta(days=req.expires_days)
     
     db.add(memory)
-    
+
     # 更新卖家统计
     seller.memories_uploaded += 1
-    
+
     await db.commit()
     await db.refresh(memory)
-    
+
+    # 创建初始版本快照
+    await create_memory_version(db, memory, changelog="初始版本")
+    await db.commit()
+
     return memory_to_response(memory, seller.name, seller.reputation_score)
 
 async def search_memories(
@@ -83,15 +91,75 @@ async def search_memories(
     min_score: float = 0,
     max_price: int = 999999,
     page: int = 1,
-    page_size: int = 10
+    page_size: int = 10,
+    sort_by: str = "relevance",  # relevance, created_at, purchase_count, price
+    search_type: Literal["keyword", "semantic", "hybrid"] = "hybrid"
 ) -> MemoryList:
-    """搜索记忆"""
-    # 基础查询
-    stmt = select(Memory, Agent.name, Agent.reputation_score).join(
+    """搜索记忆
+
+    Args:
+        db: 数据库会话
+        query: 搜索关键词
+        category: 分类筛选
+        platform: 平台筛选
+        format_type: 格式筛选
+        min_score: 最低评分
+        max_price: 最高价格
+        page: 页码
+        page_size: 每页数量
+        sort_by: 排序方式 (relevance=综合评分, created_at=创建时间, purchase_count=购买次数, price=价格)
+        search_type: 搜索类型 (keyword=关键词, semantic=语义, hybrid=混合，默认hybrid)
+
+    Returns:
+        记忆列表
+    """
+    # 基础查询（不含关键词过滤）
+    base_stmt = select(Memory, Agent.name, Agent.reputation_score).join(
         Agent, Memory.seller_agent_id == Agent.agent_id
     ).where(Memory.is_active == True)
-    
-    # 筛选条件
+
+    # 应用筛选条件（非文本搜索）
+    if category:
+        base_stmt = base_stmt.where(Memory.category.contains(category))
+    if platform:
+        base_stmt = base_stmt.where(Memory.category.startswith(platform))
+    if format_type:
+        base_stmt = base_stmt.where(Memory.format_type == format_type)
+    if min_score > 0:
+        base_stmt = base_stmt.where(Memory.avg_score >= min_score)
+    if max_price < 999999:
+        base_stmt = base_stmt.where(Memory.price <= max_price)
+
+    # 根据搜索类型选择策略
+    if search_type == "semantic":
+        # 纯语义搜索
+        return await _semantic_search(
+            db, query, base_stmt, page, page_size, sort_by
+        )
+    elif search_type == "keyword":
+        # 纯关键词搜索（原有逻辑）
+        return await _keyword_search(
+            db, query, base_stmt, page, page_size, sort_by
+        )
+    else:
+        # 混合搜索（默认）
+        return await _hybrid_search(
+            db, query, base_stmt, page, page_size, sort_by
+        )
+
+
+async def _keyword_search(
+    db: AsyncSession,
+    query: str,
+    base_stmt,
+    page: int,
+    page_size: int,
+    sort_by: str
+) -> MemoryList:
+    """关键词搜索"""
+    stmt = base_stmt
+
+    # 关键词过滤
     if query:
         stmt = stmt.where(
             or_(
@@ -99,39 +167,10 @@ async def search_memories(
                 Memory.summary.ilike(f"%{query}%")
             )
         )
-    
-    if category:
-        stmt = stmt.where(Memory.category.contains(category))
-    
-    if platform:
-        stmt = stmt.where(Memory.category.startswith(platform))
-    
-    if format_type:
-        stmt = stmt.where(Memory.format_type == format_type)
-    
-    if min_score > 0:
-        stmt = stmt.where(Memory.avg_score >= min_score)
-    
-    if max_price < 999999:
-        stmt = stmt.where(Memory.price <= max_price)
-    
-    # 计数
-    count_stmt = select(func.count()).select_from(stmt.subquery())
-    total = await db.execute(count_stmt)
-    total = total.scalar() or 0
-    
-    # 分页 + 排序（按热度）
-    stmt = stmt.order_by(desc(Memory.purchase_count)).offset((page - 1) * page_size).limit(page_size)
-    
-    result = await db.execute(stmt)
-    rows = result.all()
-    
-    items = []
-    for row in rows:
-        memory, seller_name, seller_reputation = row
-        items.append(memory_to_response(memory, seller_name, seller_reputation))
-    
-    return MemoryList(items=items, total=total, page=page, page_size=page_size)
+
+    # 使用通用搜索执行逻辑
+    return await _execute_search(stmt, db, page, page_size, sort_by)
+
 
 async def get_memory_detail(db: AsyncSession, memory_id: str, buyer_id: str = None) -> MemoryDetail:
     """获取记忆详情"""
@@ -227,14 +266,15 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
     )
     db.add(purchase)
     
-    # 创建交易流水
+    # 创建交易流水（销售记录包含佣金信息）
     tx_buyer = Transaction(
         agent_id=buyer_id,
         tx_type="purchase",
         amount=-price,
         balance_after=buyer.credits,
         related_id=memory_id,
-        description=f"购买记忆: {memory.title}"
+        description=f"购买记忆: {memory.title}",
+        commission=None
     )
     tx_seller = Transaction(
         agent_id=memory.seller_agent_id,
@@ -242,11 +282,15 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
         amount=seller_income,
         balance_after=seller.credits,
         related_id=memory_id,
-        description=f"销售记忆: {memory.title}"
+        description=f"销售记忆: {memory.title}",
+        commission=platform_fee
     )
     db.add(tx_buyer)
     db.add(tx_seller)
-    
+
+    # 更新平台统计
+    await _update_platform_stats(db, price, platform_fee)
+
     await db.commit()
     
     return PurchaseResponse(
@@ -316,3 +360,605 @@ def _calc_verification_score(data: dict) -> float:
     if data.get("test_period_days"):
         score += min(data["test_period_days"] / 30, 0.2)
     return round(min(score, 1.0), 2)
+
+async def update_memory(db: AsyncSession, memory_id: str, seller_id: str, updates: dict) -> Optional[MemoryResponse]:
+    """更新记忆
+
+    Args:
+        db: 数据库会话
+        memory_id: 记忆ID
+        seller_id: 卖家ID（用于权限验证）
+        updates: 要更新的字段字典
+
+    Returns:
+        更新后的记忆响应，如果记忆不存在或无权限则返回None
+    """
+    # 获取记忆
+    result = await db.execute(
+        select(Memory).where(Memory.memory_id == memory_id)
+    )
+    memory = result.scalar_one_or_none()
+
+    if not memory:
+        return None
+
+    # 验证权限：只有卖家才能更新
+    if memory.seller_agent_id != seller_id:
+        raise PermissionError("无权修改此记忆")
+
+    # 提取 changelog（如果有）
+    changelog = updates.pop("changelog", None)
+
+    # 更新允许的字段
+    allowed_fields = {"title", "summary", "content", "tags", "price"}
+    for field, value in updates.items():
+        if field in allowed_fields and value is not None:
+            setattr(memory, field, value)
+
+    # 更新时间戳
+    from datetime import datetime
+    memory.updated_at = datetime.now()
+
+    await db.commit()
+    await db.refresh(memory)
+
+    # 创建新版本快照
+    await create_memory_version(db, memory, changelog=changelog)
+    await db.commit()
+
+    # 获取卖家信息
+    seller = await db.execute(select(Agent).where(Agent.agent_id == seller_id))
+    seller = seller.scalar_one_or_none()
+
+    return memory_to_response(memory, seller.name if seller else "", seller.reputation_score if seller else 5.0)
+
+async def get_my_memories(
+    db: AsyncSession,
+    seller_id: str,
+    page: int = 1,
+    page_size: int = 20
+) -> dict:
+    """获取当前Agent上传的所有记忆列表
+
+    Args:
+        db: 数据库会话
+        seller_id: 卖家ID
+        page: 页码
+        page_size: 每页数量
+
+    Returns:
+        包含记忆列表和销售统计的字典
+    """
+    # 计算总数
+    count_stmt = select(func.count()).select_from(Memory).where(
+        and_(Memory.seller_agent_id == seller_id, Memory.is_active == True)
+    )
+    total_result = await db.execute(count_stmt)
+    total = total_result.scalar() or 0
+
+    # 获取记忆列表
+    stmt = select(Memory).where(
+        and_(Memory.seller_agent_id == seller_id, Memory.is_active == True)
+    ).order_by(desc(Memory.created_at)).offset((page - 1) * page_size).limit(page_size)
+
+    result = await db.execute(stmt)
+    memories = result.scalars().all()
+
+    # 转换为响应格式
+    items = []
+    total_sales = 0
+    total_earned = 0
+
+    for memory in memories:
+        items.append(memory_to_response(memory))
+        total_sales += memory.purchase_count
+        total_earned += memory.purchase_count * memory.price
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "stats": {
+            "total_memories": total,
+            "total_sales": total_sales,
+            "total_earned": total_earned
+        }
+    }
+
+async def verify_memory(
+    db: AsyncSession,
+    memory_id: str,
+    verifier_id: str,
+    req: VerificationRequest
+) -> VerificationResponse:
+    """验证记忆质量
+
+    验证者可以是任何 Agent（不能验证自己的记忆）
+    验证分数范围：1-5
+    验证结果会更新记忆的 verification_score 字段
+    验证者获得积分奖励
+
+    Args:
+        db: 数据库会话
+        memory_id: 记忆ID
+        verifier_id: 验证者ID
+        req: 验证请求
+
+    Returns:
+        验证结果
+
+    Raises:
+        ValueError: 记忆不存在、已验证过或验证自己的记忆
+    """
+    # 检查记忆是否存在
+    memory_result = await db.execute(
+        select(Memory).where(Memory.memory_id == memory_id)
+    )
+    memory = memory_result.scalar_one_or_none()
+    if not memory:
+        raise ValueError("记忆不存在")
+
+    # 检查是否是自己的记忆
+    if memory.seller_agent_id == verifier_id:
+        raise ValueError("不能验证自己的记忆")
+
+    # 检查是否已经验证过
+    existing_verification = await db.execute(
+        select(Verification).where(
+            and_(
+                Verification.memory_id == memory_id,
+                Verification.verifier_agent_id == verifier_id
+            )
+        )
+    )
+    if existing_verification.scalar_one_or_none():
+        raise ValueError("已经验证过此记忆")
+
+    # 创建验证记录
+    verification = Verification(
+        verification_id=gen_id("ver"),
+        memory_id=memory_id,
+        verifier_agent_id=verifier_id,
+        score=req.score,
+        comment=req.comment
+    )
+    db.add(verification)
+
+    # 获取所有验证记录并计算平均分
+    all_verifications = await db.execute(
+        select(Verification).where(Verification.memory_id == memory_id)
+    )
+    verifications = all_verifications.scalars().all()
+
+    # 计算新的验证分数（1-5转换为0-1）
+    total_score = sum(v.score for v in verifications) + req.score
+    avg_score = total_score / (len(verifications) + 1)
+    memory.verification_score = round(avg_score / 5.0, 2)
+
+    # 给验证者奖励积分
+    verifier = await db.execute(
+        select(Agent).where(Agent.agent_id == verifier_id)
+    )
+    verifier = verifier.scalar_one_or_none()
+    if not verifier:
+        raise ValueError("验证者不存在")
+
+    REWARD_CREDITS = 5
+    verifier.credits += REWARD_CREDITS
+    verifier.total_earned += REWARD_CREDITS
+
+    # 创建交易流水
+    tx = Transaction(
+        agent_id=verifier_id,
+        tx_type="bonus",
+        amount=REWARD_CREDITS,
+        balance_after=verifier.credits,
+        related_id=memory_id,
+        description=f"验证记忆奖励: {memory.title}"
+    )
+    db.add(tx)
+
+    await db.commit()
+
+    return VerificationResponse(
+        success=True,
+        message="验证成功",
+        memory_id=memory_id,
+        verification_score=memory.verification_score,
+        verification_count=len(verifications) + 1,
+        reward_credits=REWARD_CREDITS
+    )
+
+async def _update_platform_stats(db: AsyncSession, total_amount: int, commission: int):
+    """更新平台统计信息
+
+    Args:
+        db: 数据库会话
+        total_amount: 总交易额
+        commission: 平台佣金
+    """
+    from datetime import datetime, timedelta
+
+    # 获取或创建今日统计
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # 查找今日统计记录
+    stats_result = await db.execute(
+        select(PlatformStats).where(PlatformStats.date == today)
+    )
+    stats = stats_result.scalar_one_or_none()
+
+    if stats:
+        # 更新现有统计
+        stats.total_transactions += 1
+        stats.total_revenue += commission
+        stats.total_volume += total_amount
+        stats.daily_transactions += 1
+        stats.daily_revenue += commission
+        stats.daily_volume += total_amount
+    else:
+        # 创建新的统计记录
+        stats = PlatformStats(
+            total_transactions=1,
+            total_revenue=commission,
+            total_volume=total_amount,
+            daily_transactions=1,
+            daily_revenue=commission,
+            daily_volume=total_amount,
+            date=today
+        )
+        db.add(stats)
+
+
+async def _semantic_search(
+    db: AsyncSession,
+    query: str,
+    base_stmt,
+    page: int,
+    page_size: int,
+    sort_by: str
+) -> MemoryList:
+    """语义搜索"""
+    if not query:
+        # 无查询时返回所有结果
+        return await _execute_search(base_stmt, db, page, page_size, sort_by)
+
+    # 获取所有候选记忆
+    result = await db.execute(base_stmt)
+    all_memories = result.all()
+
+    if not all_memories:
+        return MemoryList(items=[], total=0, page=page, page_size=page_size)
+
+    # 准备语义搜索数据
+    memories_data = [
+        {
+            'id': row.Memory.memory_id,
+            'title': row.Memory.title,
+            'summary': row.Memory.summary
+        }
+        for row in all_memories
+    ]
+
+    # 索引记忆
+    engine = get_search_engine()
+    engine.batch_index_with_cache(memories_data)
+
+    # 语义搜索
+    search_results = engine.search(query, top_k=page_size * page)
+
+    # 按 ID 映射回记忆对象
+    memory_map = {row.Memory.memory_id: row for row in all_memories}
+    sorted_memories = []
+    for memory_id, score in search_results:
+        if memory_id in memory_map:
+            sorted_memories.append((memory_id, score, memory_map[memory_id]))
+
+    # 分页
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    paged_memories = sorted_memories[start_idx:end_idx]
+
+    # 转换为响应格式
+    items = []
+    for memory_id, score, row in paged_memories:
+        memory, seller_name, seller_reputation = row
+        items.append(memory_to_response(memory, seller_name, seller_reputation))
+
+    return MemoryList(
+        items=items,
+        total=len(sorted_memories),
+        page=page,
+        page_size=page_size
+    )
+
+
+async def _hybrid_search(
+    db: AsyncSession,
+    query: str,
+    base_stmt,
+    page: int,
+    page_size: int,
+    sort_by: str
+) -> MemoryList:
+    """混合搜索：语义 + 关键词"""
+    if not query:
+        # 无查询时返回所有结果
+        return await _execute_search(base_stmt, db, page, page_size, sort_by)
+
+    # 1. 获取关键词匹配结果
+    keyword_stmt = base_stmt
+    if query:
+        keyword_stmt = keyword_stmt.where(
+            or_(
+                Memory.title.ilike(f"%{query}%"),
+                Memory.summary.ilike(f"%{query}%")
+            )
+        )
+
+    keyword_result = await db.execute(keyword_stmt)
+    keyword_memories = keyword_result.all()
+    keyword_ids = {row.Memory.memory_id for row in keyword_memories}
+
+    # 2. 获取所有候选记忆用于语义搜索
+    all_result = await db.execute(base_stmt)
+    all_memories = all_result.all()
+
+    if not all_memories:
+        return MemoryList(items=[], total=0, page=page, page_size=page_size)
+
+    # 3. 准备语义搜索数据
+    memories_data = [
+        {
+            'id': row.Memory.memory_id,
+            'title': row.Memory.title,
+            'summary': row.Memory.summary
+        }
+        for row in all_memories
+    ]
+
+    # 4. 索引记忆
+    engine = get_search_engine()
+    engine.batch_index_with_cache(memories_data)
+
+    # 5. 混合搜索
+    search_results = engine.search_with_keywords(
+        query,
+        keyword_ids,
+        top_k=page_size * page,
+        semantic_weight=0.6  # 语义权重 60%，关键词 40%
+    )
+
+    # 6. 按 ID 映射回记忆对象
+    memory_map = {row.Memory.memory_id: row for row in all_memories}
+    sorted_memories = []
+    for memory_id, score in search_results:
+        if memory_id in memory_map:
+            sorted_memories.append((memory_id, score, memory_map[memory_id]))
+
+    # 7. 分页
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    paged_memories = sorted_memories[start_idx:end_idx]
+
+    # 8. 转换为响应格式
+    items = []
+    for memory_id, score, row in paged_memories:
+        memory, seller_name, seller_reputation = row
+        items.append(memory_to_response(memory, seller_name, seller_reputation))
+
+    return MemoryList(
+        items=items,
+        total=len(sorted_memories),
+        page=page,
+        page_size=page_size
+    )
+
+
+async def _execute_search(
+    stmt,
+    db: AsyncSession,
+    page: int,
+    page_size: int,
+    sort_by: str
+) -> MemoryList:
+    """执行搜索查询（通用逻辑）"""
+    # 计数
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = await db.execute(count_stmt)
+    total = total.scalar() or 0
+
+    # 排序逻辑
+    if sort_by == "created_at":
+        stmt = stmt.order_by(desc(Memory.created_at))
+    elif sort_by == "purchase_count":
+        stmt = stmt.order_by(desc(Memory.purchase_count))
+    elif sort_by == "price":
+        stmt = stmt.order_by(Memory.price)
+    else:
+        # 综合评分排序（默认）
+        score_normalized = (Memory.avg_score / 5.0)
+        purchase_normalized = func.log10(Memory.purchase_count + 1) / func.log10(100)
+        verification_normalized = func.coalesce(Memory.verification_score, 0.5)
+        days_old = func.julianday(func.now()) - func.julianday(Memory.created_at)
+        time_decay = case(
+            (days_old <= 7, 1.0),
+            (days_old <= 30, 1.0 - (days_old - 7) / 23 * 0.5),
+            else_=0.5
+        )
+        favorite_normalized = func.log10(Memory.favorite_count + 1) / func.log10(50)
+
+        composite_score = (
+            score_normalized * 0.3 +
+            purchase_normalized * 0.2 +
+            verification_normalized * 0.25 +
+            time_decay * 0.15 +
+            favorite_normalized * 0.1
+        )
+
+        stmt = stmt.order_by(desc(composite_score))
+
+    # 分页
+    stmt = stmt.offset((page - 1) * page_size).limit(page_size)
+
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    items = []
+    for row in rows:
+        memory, seller_name, seller_reputation = row
+        items.append(memory_to_response(memory, seller_name, seller_reputation))
+
+    return MemoryList(items=items, total=total, page=page, page_size=page_size)
+
+
+async def create_memory_version(
+    db: AsyncSession,
+    memory: Memory,
+    changelog: Optional[str] = None
+) -> MemoryVersion:
+    """创建记忆版本快照
+
+    Args:
+        db: 数据库会话
+        memory: 记忆对象
+        changelog: 更新说明（可选）
+
+    Returns:
+        创建的版本对象
+    """
+    # 获取当前最大版本号
+    from sqlalchemy import select, func
+    stmt = select(func.max(MemoryVersion.version_number)).where(
+        MemoryVersion.memory_id == memory.memory_id
+    )
+    result = await db.execute(stmt)
+    max_version = result.scalar() or 0
+    next_version = max_version + 1
+
+    # 创建版本快照
+    version = MemoryVersion(
+        version_id=gen_id("ver"),
+        memory_id=memory.memory_id,
+        version_number=next_version,
+        title=memory.title,
+        category=memory.category,
+        tags=memory.tags or [],
+        summary=memory.summary,
+        content=memory.content,
+        format_type=memory.format_type,
+        price=memory.price,
+        changelog=changelog
+    )
+    db.add(version)
+    await db.flush()
+
+    return version
+
+
+async def get_memory_versions(
+    db: AsyncSession,
+    memory_id: str,
+    page: int = 1,
+    page_size: int = 20
+) -> dict:
+    """获取记忆的所有版本历史
+
+    Args:
+        db: 数据库会话
+        memory_id: 记忆ID
+        page: 页码
+        page_size: 每页数量
+
+    Returns:
+        版本列表
+    """
+    # 计算总数
+    count_stmt = select(func.count()).select_from(MemoryVersion).where(
+        MemoryVersion.memory_id == memory_id
+    )
+    total_result = await db.execute(count_stmt)
+    total = total_result.scalar() or 0
+
+    # 获取版本列表（按版本号降序）
+    stmt = select(MemoryVersion).where(
+        MemoryVersion.memory_id == memory_id
+    ).order_by(desc(MemoryVersion.version_number)).offset(
+        (page - 1) * page_size
+    ).limit(page_size)
+
+    result = await db.execute(stmt)
+    versions = result.scalars().all()
+
+    from app.models.schemas import MemoryVersionResponse
+    items = [
+        MemoryVersionResponse(
+            version_id=v.version_id,
+            memory_id=v.memory_id,
+            version_number=v.version_number,
+            title=v.title,
+            category=v.category,
+            tags=v.tags or [],
+            summary=v.summary,
+            content=v.content,
+            format_type=v.format_type,
+            price=v.price,
+            changelog=v.changelog,
+            created_at=v.created_at
+        )
+        for v in versions
+    ]
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size
+    }
+
+
+async def get_memory_version(
+    db: AsyncSession,
+    memory_id: str,
+    version_id: str
+) -> Optional[dict]:
+    """获取特定版本的详细信息
+
+    Args:
+        db: 数据库会话
+        memory_id: 记忆ID
+        version_id: 版本ID
+
+    Returns:
+        版本详细信息，如果不存在则返回None
+    """
+    result = await db.execute(
+        select(MemoryVersion).where(
+            and_(
+                MemoryVersion.memory_id == memory_id,
+                MemoryVersion.version_id == version_id
+            )
+        )
+    )
+    version = result.scalar_one_or_none()
+
+    if not version:
+        return None
+
+    from app.models.schemas import MemoryVersionResponse
+    return MemoryVersionResponse(
+        version_id=version.version_id,
+        memory_id=version.memory_id,
+        version_number=version.version_number,
+        title=version.title,
+        category=version.category,
+        tags=version.tags or [],
+        summary=version.summary,
+        content=version.content,
+        format_type=version.format_type,
+        price=version.price,
+        changelog=version.changelog,
+        created_at=version.created_at
+    ).model_dump()
+

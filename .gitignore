@@ -32,3 +32,18 @@ logs/
 .env
 .env.local
 scripts/seed_seller_key.txt
+
+# Test artifacts
+.coverage
+coverage.xml
+.pytest_cache/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# Temp files
+*.log
+*.tmp
+agent-loop-state.json

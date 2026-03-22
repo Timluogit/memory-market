@@ -99,15 +99,71 @@ class Rating(Base):
 class Transaction(Base):
     """积分交易流水表"""
     __tablename__ = "transactions"
-    
+
     tx_id = Column(String(50), primary_key=True, default=lambda: gen_id("tx"))
     agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
-    
+
     tx_type = Column(String(50), nullable=False)  # purchase/sale/recharge/withdraw/refund/bonus
     amount = Column(Integer, nullable=False)  # 正数=收入，负数=支出
     balance_after = Column(Integer, nullable=False)
-    
+
     related_id = Column(String(50), nullable=True)  # 关联ID（购买/销售ID）
     description = Column(String(200), nullable=True)
-    
+    commission = Column(Integer, nullable=True)  # 平台佣金（仅在销售记录中有值）
+
     created_at = Column(DateTime, server_default=func.now())
+
+class Verification(Base):
+    """记忆验证表"""
+    __tablename__ = "verifications"
+
+    verification_id = Column(String(50), primary_key=True, default=lambda: gen_id("ver"))
+    memory_id = Column(String(50), ForeignKey("memories.memory_id"), nullable=False, index=True)
+    verifier_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
+
+    score = Column(Integer, nullable=False)  # 验证分数 1-5
+    comment = Column(Text, nullable=True)  # 验证评论
+
+    created_at = Column(DateTime, server_default=func.now())
+
+class MemoryVersion(Base):
+    """记忆版本表"""
+    __tablename__ = "memory_versions"
+
+    version_id = Column(String(50), primary_key=True, default=lambda: gen_id("ver"))
+    memory_id = Column(String(50), ForeignKey("memories.memory_id"), nullable=False, index=True)
+    version_number = Column(Integer, nullable=False)
+
+    # 快照数据
+    title = Column(String(200), nullable=False)
+    category = Column(String(200), nullable=False)
+    tags = Column(JSON, default=[])
+    summary = Column(Text, nullable=False)
+    content = Column(JSON, nullable=False)
+    format_type = Column(String(50), default="template")
+    price = Column(Integer, nullable=False)
+
+    # 更新说明
+    changelog = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now())
+
+class PlatformStats(Base):
+    """平台统计表"""
+    __tablename__ = "platform_stats"
+
+    stats_id = Column(String(50), primary_key=True, default=lambda: gen_id("stats"))
+
+    # 累计数据
+    total_transactions = Column(Integer, default=0)  # 总交易数
+    total_revenue = Column(Integer, default=0)  # 平台总收入（佣金）
+    total_volume = Column(Integer, default=0)  # 总交易额（含佣金）
+
+    # 当日数据
+    daily_transactions = Column(Integer, default=0)  # 当日交易数
+    daily_revenue = Column(Integer, default=0)  # 当日佣金收入
+    daily_volume = Column(Integer, default=0)  # 当日交易额
+
+    date = Column(DateTime, nullable=True)  # 统计日期
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

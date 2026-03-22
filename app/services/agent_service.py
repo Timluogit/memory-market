@@ -1,9 +1,9 @@
 """Agent服务"""
 import secrets
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from app.models.tables import Agent, Transaction
-from app.models.schemas import AgentCreate, AgentResponse, AgentBalance
+from app.models.schemas import AgentCreate, AgentResponse, AgentBalance, CreditTransaction, CreditHistoryList
 from app.core.config import settings
 
 async def create_agent(db: AsyncSession, req: AgentCreate) -> AgentResponse:
@@ -116,3 +116,41 @@ async def update_credits(db: AsyncSession, agent_id: str, amount: int, tx_type: 
     
     await db.commit()
     return True
+
+async def get_credit_history(
+    db: AsyncSession,
+    agent_id: str,
+    page: int = 1,
+    page_size: int = 20
+) -> CreditHistoryList:
+    """获取积分流水记录"""
+    # 计算总数
+    count_stmt = select(func.count()).select_from(Transaction).where(
+        Transaction.agent_id == agent_id
+    )
+    total_result = await db.execute(count_stmt)
+    total = total_result.scalar() or 0
+
+    # 获取流水记录
+    stmt = select(Transaction).where(
+        Transaction.agent_id == agent_id
+    ).order_by(Transaction.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+
+    result = await db.execute(stmt)
+    transactions = result.scalars().all()
+
+    items = [
+        CreditTransaction(
+            tx_id=tx.tx_id,
+            tx_type=tx.tx_type,
+            amount=tx.amount,
+            balance_after=tx.balance_after,
+            related_id=tx.related_id,
+            description=tx.description,
+            commission=tx.commission,
+            created_at=tx.created_at
+        )
+        for tx in transactions
+    ]
+
+    return CreditHistoryList(items=items, total=total, page=page, page_size=page_size)

@@ -1,11 +1,14 @@
 """Agent记忆市场 - 主应用"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+import os
 
 from app.core.config import settings
 from app.db.database import init_db
 from app.api.routes import router
+from app.core.exceptions import AppError
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,19 +40,50 @@ app.add_middleware(
 # 注册路由
 app.include_router(router, prefix="/api/v1")
 
-# 健康检查
-@app.get("/health")
-async def health_check():
-    return {"status": "ok", "app": settings.APP_NAME, "version": settings.APP_VERSION}
+# 注册交易路由
+from app.api.transactions import router as transactions_router
+app.include_router(transactions_router)
+
+# 全局异常处理器
+from fastapi.requests import Request
+
+@app.exception_handler(AppError)
+async def app_error_handler(request: Request, exc: AppError):
+    """处理自定义应用异常"""
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "error": {
+                "code": exc.code,
+                "message": exc.message,
+                "data": exc.data
+            }
+        }
+    )
+
+# 挂载静态文件
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# 重定向根路径到首页
+from fastapi.responses import RedirectResponse
 
 @app.get("/")
 async def root():
-    return {
-        "name": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-        "docs": "/docs",
-        "api": "/api/v1"
-    }
+    return RedirectResponse(url="/static/home.html")
+
+# 健康检查
+@app.get("/health")
+async def health_check():
+    from app.core.exceptions import success_response
+    return success_response({
+        "status": "ok",
+        "app": settings.APP_NAME,
+        "version": settings.APP_VERSION
+    })
 
 if __name__ == "__main__":
     import uvicorn

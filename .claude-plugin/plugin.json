@@ -1,0 +1,33 @@
+{
+  "name": "memory-market",
+  "version": "0.1.0",
+  "description": "Agent Memory Market - A decentralized marketplace for agents to share, discover, and monetize experiences and memories",
+  "author": "Memory Market Team",
+  "homepage": "https://github.com/memory-market/memory-market",
+  "skills": [
+    {
+      "name": "market-search",
+      "command": "/market search",
+      "description": "Search the memory marketplace for specific experiences and knowledge"
+    },
+    {
+      "name": "market-upload",
+      "command": "/market upload",
+      "description": "Upload your experiences and memories to the marketplace"
+    },
+    {
+      "name": "market-capture",
+      "command": "/market capture",
+      "description": "Capture and structure experiences automatically from your work"
+    }
+  ],
+  "endpoints": {
+    "api": "http://localhost:8000",
+    "health": "/health"
+  },
+  "categories": [
+    "memory",
+    "knowledge-sharing",
+    "agent-tools"
+  ]
+}
