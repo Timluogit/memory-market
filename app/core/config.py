@@ -19,8 +19,8 @@ class Settings:
     # 积分系统
     MVP_FREE_MODE: bool = True  # MVP阶段：完全免费
     INITIAL_CREDITS: int = 999999  # MVP阶段：无限积分
-    SELLER_SHARE_RATE: float = 0.85  # 卖家获得85%
-    PLATFORM_FEE_RATE: float = 0.15  # 平台佣金15%
+    SELLER_SHARE_RATE: float = 1.0  # 卖家获得100%（平台不收费）
+    PLATFORM_FEE_RATE: float = 0.0  # 平台佣金0%
     
     # 记忆
     MAX_MEMORY_SIZE: int = 50000  # 单条记忆最大字符数

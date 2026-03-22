@@ -235,9 +235,9 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
     elif buyer.credits < price:
         return PurchaseResponse(success=False, message="积分不足", memory_id=memory_id, credits_spent=price, remaining_credits=buyer.credits)
     
-    # 计算分配
-    seller_income = int(price * settings.SELLER_SHARE_RATE)
-    platform_fee = price - seller_income
+    # 计算分配（100%给卖家，平台不收费）
+    seller_income = price  # 卖家获得全部金额
+    platform_fee = 0  # 平台佣金为0
     
     # 扣买家积分
     buyer.credits -= price
@@ -254,7 +254,7 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
     # 更新记忆统计
     memory.purchase_count += 1
     
-    # 创建购买记录
+    # 创建购买记录（不再记录平台佣金）
     purchase = Purchase(
         purchase_id=gen_id("pur"),
         buyer_agent_id=buyer_id,
@@ -262,11 +262,11 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
         memory_id=memory_id,
         amount=price,
         seller_income=seller_income,
-        platform_fee=platform_fee
+        platform_fee=0  # 平台不收费
     )
     db.add(purchase)
     
-    # 创建交易流水（销售记录包含佣金信息）
+    # 创建交易流水（不再记录佣金）
     tx_buyer = Transaction(
         agent_id=buyer_id,
         tx_type="purchase",
@@ -274,7 +274,7 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
         balance_after=buyer.credits,
         related_id=memory_id,
         description=f"购买记忆: {memory.title}",
-        commission=None
+        commission=0  # 平台不收费
     )
     tx_seller = Transaction(
         agent_id=memory.seller_agent_id,
@@ -283,7 +283,7 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
         balance_after=seller.credits,
         related_id=memory_id,
         description=f"销售记忆: {memory.title}",
-        commission=platform_fee
+        commission=0  # 平台不收费
     )
     db.add(tx_buyer)
     db.add(tx_seller)
