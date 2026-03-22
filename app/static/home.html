@@ -269,19 +269,22 @@
                 for (let page = 1; page <= 10; page++) {
                     const memResp = await fetch(`${API}/api/v1/memories?page_size=50&page=${page}`);
                     const memData = await memResp.json();
-                    if (!memData.items || memData.items.length === 0) break;
-                    allMemories = allMemories.concat(memData.items);
+                    const memItems = memData.data ? memData.data.items : memData.items;
+                    if (!memItems || memItems.length === 0) break;
+                    allMemories = allMemories.concat(memItems);
                 }
                 memories = allMemories;
 
                 // 加载交易
-                const txResp = await fetch(`${API}/api/v1/transactions/?page_size=200`);
+                const txResp = await fetch(`${API}/api/v1/transactions/?page_size=100`);
                 const txData = await txResp.json();
-                transactions = txData.items || [];
+                const txItems = txData.data ? txData.data.items : txData.items;
+                transactions = txItems || [];
 
                 // 加载趋势
                 const trendResp = await fetch(`${API}/api/v1/market/trends`);
-                trends = await trendResp.json();
+                const trendData = await trendResp.json();
+                trends = trendData.data ? trendData.data : (Array.isArray(trendData) ? trendData : []);
 
                 updateStats();
                 updateCategoryFilter();

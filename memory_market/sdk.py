@@ -112,7 +112,7 @@ class MemoryMarket:
             Agent 信息字典
         """
         client = self._get_client()
-        response = client.get("/api/agents/me")
+        response = client.get("/api/v1/agents/me")
         return self._handle_response(response)
 
     def get_balance(self) -> Dict[str, Any]:
@@ -122,7 +122,7 @@ class MemoryMarket:
             余额信息: {agent_id, credits, total_earned, total_spent}
         """
         client = self._get_client()
-        response = client.get("/api/agents/me/balance")
+        response = client.get("/api/v1/agents/me/balance")
         return self._handle_response(response)
 
     def get_credit_history(
@@ -141,7 +141,7 @@ class MemoryMarket:
         """
         client = self._get_client()
         response = client.get(
-            "/api/agents/me/credits/history",
+            "/api/v1/agents/me/credits/history",
             params={"page": page, "page_size": page_size}
         )
         return self._handle_response(response)
@@ -178,7 +178,7 @@ class MemoryMarket:
         """
         client = self._get_client()
         response = client.get(
-            "/api/memories",
+            "/api/v1/memories",
             params={
                 "query": query,
                 "category": category,
@@ -203,7 +203,7 @@ class MemoryMarket:
             记忆详情（不含完整内容，需购买）
         """
         client = self._get_client()
-        response = client.get(f"/api/memories/{memory_id}")
+        response = client.get(f"/api/v1/memories/{memory_id}")
         return self._handle_response(response)
 
     # ============ 记忆交易 ============
@@ -218,7 +218,7 @@ class MemoryMarket:
             购买结果: {success, message, memory_id, credits_spent, remaining_credits, memory_content}
         """
         client = self._get_client()
-        response = client.post(f"/api/memories/{memory_id}/purchase")
+        response = client.post(f"/api/v1/memories/{memory_id}/purchase")
         return self._handle_response(response)
 
     def rate(
@@ -246,7 +246,7 @@ class MemoryMarket:
         if effectiveness:
             payload["effectiveness"] = effectiveness
 
-        response = client.post(f"/api/memories/{memory_id}/rate", json=payload)
+        response = client.post(f"/api/v1/memories/{memory_id}/rate", json=payload)
         return self._handle_response(response)
 
     def verify(
@@ -270,7 +270,7 @@ class MemoryMarket:
         if comment:
             payload["comment"] = comment
 
-        response = client.post(f"/api/memories/{memory_id}/verify", json=payload)
+        response = client.post(f"/api/v1/memories/{memory_id}/verify", json=payload)
         return self._handle_response(response)
 
     # ============ 记忆上传 ============
@@ -318,7 +318,7 @@ class MemoryMarket:
         if expires_days:
             payload["expires_days"] = expires_days
 
-        response = client.post("/api/memories", json=payload)
+        response = client.post("/api/v1/memories", json=payload)
         return self._handle_response(response)
 
     def update_memory(
@@ -352,7 +352,7 @@ class MemoryMarket:
         if changelog:
             payload["changelog"] = changelog
 
-        response = client.put(f"/api/memories/{memory_id}", json=payload)
+        response = client.put(f"/api/v1/memories/{memory_id}", json=payload)
         return self._handle_response(response)
 
     def get_my_memories(
@@ -371,7 +371,7 @@ class MemoryMarket:
         """
         client = self._get_client()
         response = client.get(
-            "/api/agents/me/memories",
+            "/api/v1/agents/me/memories",
             params={"page": page, "page_size": page_size}
         )
         return self._handle_response(response)
@@ -389,7 +389,7 @@ class MemoryMarket:
         """
         client = self._get_client()
         response = client.get(
-            "/api/market/trends",
+            "/api/v1/market/trends",
             params={"platform": platform}
         )
         return self._handle_response(response)
