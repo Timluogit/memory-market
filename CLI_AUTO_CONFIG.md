@@ -59,7 +59,7 @@ memory-market config --auto-detect
 **输出示例**:
 ```
 🔍 自动检测配置...
-✅ 检测到 Tailscale/本地 IP: http://100.110.128.9:8000
+✅ 检测到 Tailscale/本地 IP: http://100.109.43.52:8000
 💡 提示: 使用 --setup-mcp 自动配置 Claude Code
 ```
 
@@ -113,7 +113,7 @@ memory-market config --show
 当前配置:
 {
   "api_key": "mk_test_xxxxxxxxxxxxx",
-  "base_url": "http://100.110.128.9:8000"
+  "base_url": "http://100.109.43.52:8000"
 }
 
 Claude Code MCP 配置:
@@ -124,7 +124,7 @@ Claude Code MCP 配置:
   "cwd": "/Users/sss/.openclaw/workspace/memory-market",
   "env": {
     "MEMORY_MARKET_API_KEY": "mk_test_xxx",
-    "MEMORY_MARKET_API_URL": "http://100.110.128.9:8000"
+    "MEMORY_MARKET_API_URL": "http://100.109.43.52:8000"
   }
 }
 ```
@@ -172,7 +172,7 @@ memory-market config --set-base-url http://localhost:8000
 memory-market config --set-base-url https://memory-market.onrender.com
 
 # 测试环境
-memory-market config --set-base-url http://100.110.128.9:8000
+memory-market config --set-base-url http://100.109.43.52:8000
 ```
 
 ---
@@ -186,7 +186,7 @@ memory-market config --set-base-url http://100.110.128.9:8000
 ```json
 {
   "api_key": "mk_test_xxxxxxxxxxxxx",
-  "base_url": "http://100.110.128.9:8000",
+  "base_url": "http://100.109.43.52:8000",
   "custom_env": "production"
 }
 ```
@@ -240,7 +240,7 @@ tailscale status
 sudo tailscale up
 
 # 手动设置 IP
-memory-market config --set-base-url http://100.110.128.9:8000
+memory-market config --set-base-url http://100.109.43.52:8000
 ```
 
 ### 问题 2: MCP 配置失败

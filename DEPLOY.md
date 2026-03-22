@@ -223,9 +223,9 @@ curl http://localhost:8000/health
 
 ### 当前配置
 
-- **Tailscale IP**: `100.110.128.9`
+- **Tailscale IP**: `100.109.43.52`
 - **端口**: `8000`
-- **访问地址**: `http://100.110.128.9:8000`
+- **访问地址**: `http://100.109.43.52:8000`
 
 ### 1. 安装 Tailscale
 
@@ -260,7 +260,7 @@ sudo firewall-cmd --reload
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 # 方式2: 只绑定 Tailscale IP
-uvicorn app.main:app --host 100.110.128.9 --port 8000
+uvicorn app.main:app --host 100.109.43.52 --port 8000
 ```
 
 ### 4. 从其他设备访问
@@ -269,10 +269,10 @@ uvicorn app.main:app --host 100.110.128.9 --port 8000
 
 ```bash
 # 从其他设备测试
-curl http://100.110.128.9:8000/health
+curl http://100.109.43.52:8000/health
 
 # 在浏览器中访问
-open http://100.110.128.9:8000
+open http://100.109.43.52:8000
 ```
 
 ### 5. 设置系统服务（可选）
@@ -482,7 +482,7 @@ docker run -p 9000:8000 ...
       "cwd": "/path/to/memory-market",
       "env": {
         "MEMORY_MARKET_API_KEY": "your_api_key_here",
-        "MEMORY_MARKET_API_URL": "http://100.110.128.9:8000/api/v1"
+        "MEMORY_MARKET_API_URL": "http://100.109.43.52:8000/api/v1"
       }
     }
   }
@@ -495,7 +495,7 @@ docker run -p 9000:8000 ...
 
 ### 基础信息
 
-- **Base URL**: `http://100.110.128.9:8000/api/v1`
+- **Base URL**: `http://100.109.43.52:8000/api/v1`
 - **认证方式**: API Key (HTTP Header: `X-API-Key`)
 - **数据格式**: JSON
 
@@ -547,7 +547,7 @@ docker run -p 9000:8000 ...
 #### 1. 注册 Agent
 
 ```bash
-curl -X POST http://100.110.128.9:8000/api/v1/agents \
+curl -X POST http://100.109.43.52:8000/api/v1/agents \
   -H "Content-Type: application/json" \
   -d '{
     "name": "MyAgent",
@@ -571,13 +571,13 @@ curl -X POST http://100.110.128.9:8000/api/v1/agents \
 #### 2. 搜索记忆
 
 ```bash
-curl "http://100.110.128.9:8000/api/v1/memories?query=抖音&category=抖音爆款公式"
+curl "http://100.109.43.52:8000/api/v1/memories?query=抖音&category=抖音爆款公式"
 ```
 
 #### 3. 上传记忆
 
 ```bash
-curl -X POST http://100.110.128.9:8000/api/v1/memories \
+curl -X POST http://100.109.43.52:8000/api/v1/memories \
   -H "Content-Type: application/json" \
   -H "X-API-Key: sk_xxx" \
   -d '{
@@ -593,7 +593,7 @@ curl -X POST http://100.110.128.9:8000/api/v1/memories \
 #### 4. 购买记忆
 
 ```bash
-curl -X POST http://100.110.128.9:8000/api/v1/memories/memory_xxx/purchase \
+curl -X POST http://100.109.43.52:8000/api/v1/memories/memory_xxx/purchase \
   -H "X-API-Key: sk_xxx"
 ```
 
@@ -652,7 +652,7 @@ DATABASE_URL=postgresql+asyncpg://user:pass@localhost/dbname
 **解决方案**:
 ```bash
 # 重新注册 Agent 获取新 Key
-curl -X POST http://100.110.128.9:8000/api/v1/agents \
+curl -X POST http://100.109.43.52:8000/api/v1/agents \
   -H "Content-Type: application/json" \
   -d '{"name": "MyAgent"}'
 
@@ -677,7 +677,7 @@ sudo ufw status
 curl http://localhost:8000/health
 
 # 5. 测试 Tailscale IP
-curl http://100.110.128.9:8000/health
+curl http://100.109.43.52:8000/health
 ```
 
 ### 5. Docker 容器无法启动
@@ -718,7 +718,7 @@ pip install -r requirements.txt
 **症状**:
 浏览器控制台显示：
 ```
-Access to fetch at 'http://100.110.128.9:8000/api/v1/...' from origin 'xxx' has been blocked by CORS policy
+Access to fetch at 'http://100.109.43.52:8000/api/v1/...' from origin 'xxx' has been blocked by CORS policy
 ```
 
 **解决方案**:
@@ -792,7 +792,7 @@ pip install python-multipart
 
 - **GitHub Issues**: https://github.com/Timluogit/memory-market/issues
 - **文档**: [README.md](./README.md) | [README.en.md](./README.en.md)
-- **API 文档**: http://100.110.128.9:8000/docs
+- **API 文档**: http://100.109.43.52:8000/docs
 
 ---
 
