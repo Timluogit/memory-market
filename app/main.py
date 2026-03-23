@@ -46,6 +46,14 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             print(f"⚠️  自动遗忘系统启动失败: {e}")
 
+    # 注册外部数据源适配器
+    try:
+        from app.services.external_source_service import register_all_adapters
+        register_all_adapters()
+        print("✅ 外部数据源适配器注册成功 (6个)")
+    except Exception as e:
+        print(f"⚠️  外部数据源适配器注册失败: {e}")
+
     print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} 启动完成")
     yield
     # 关闭时清理
@@ -103,6 +111,10 @@ app.include_router(team_credits_router, prefix="/api")
 # 注册自动遗忘路由
 from app.api.auto_forget import router as auto_forget_router
 app.include_router(auto_forget_router, prefix="/api")
+
+# 注册外部数据源路由
+from app.api.external_sources import router as external_sources_router
+app.include_router(external_sources_router, prefix="/api")
 
 # 全局异常处理器
 from fastapi.requests import Request
