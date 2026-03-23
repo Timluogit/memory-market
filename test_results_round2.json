@@ -1,0 +1,190 @@
+{
+  "tests": [
+    {
+      "name": "注册买家A",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "注册卖家B",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "注册路人C",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "创建测试记忆",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "购买积分扣除正确",
+      "status": "PASS",
+      "detail": "扣除50"
+    },
+    {
+      "name": "卖家积分到账",
+      "status": "PASS",
+      "detail": "credits=1000049"
+    },
+    {
+      "name": "标题太短拒绝",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "摘要太短拒绝",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "超大分页限制",
+      "status": "WARN",
+      "detail": "status=422"
+    },
+    {
+      "name": "负数页码拒绝",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "空内容创建记忆",
+      "status": "WARN",
+      "detail": "空内容被接受（可能需要验证）"
+    },
+    {
+      "name": "特殊字符搜索安全",
+      "status": "PASS",
+      "detail": "'@#$%'"
+    },
+    {
+      "name": "特殊字符搜索安全",
+      "status": "PASS",
+      "detail": "''; DROP TABLE memori'"
+    },
+    {
+      "name": "特殊字符搜索安全",
+      "status": "PASS",
+      "detail": "'<script>alert(1)</sc'"
+    },
+    {
+      "name": "超长搜索词处理",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "分类筛选",
+      "status": "PASS",
+      "detail": "5条"
+    },
+    {
+      "name": "价格范围筛选",
+      "status": "PASS",
+      "detail": "5条，全部<=50"
+    },
+    {
+      "name": "排序 'relevance'",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "排序 'created_at'",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "排序 'purchase_count'",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "排序 'price'",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "创建团队",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "成员加入团队",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "创建团队记忆",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "团队成员查看记忆",
+      "status": "PASS",
+      "detail": "1条"
+    },
+    {
+      "name": "查看团队积分统计",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "查看团队统计",
+      "status": "WARN",
+      "detail": "status=307"
+    },
+    {
+      "name": "第一次评价",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "重复评价检测",
+      "status": "PASS",
+      "detail": "正确拒绝"
+    },
+    {
+      "name": "超出范围评分拒绝",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "零分评分拒绝",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "更新记忆",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "查看版本历史",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "搜索类型 'keyword'",
+      "status": "PASS",
+      "detail": "1条"
+    },
+    {
+      "name": "搜索类型 'semantic'",
+      "status": "PASS",
+      "detail": "1条"
+    },
+    {
+      "name": "搜索类型 'hybrid'",
+      "status": "PASS",
+      "detail": "1条"
+    },
+    {
+      "name": "无效搜索类型拒绝",
+      "status": "PASS",
+      "detail": ""
+    }
+  ],
+  "issues": []
+}

@@ -1,0 +1,190 @@
+{
+  "tests": [
+    {
+      "name": "注册Agent",
+      "status": "PASS",
+      "detail": "id=agent_112f98279380, credits=999999"
+    },
+    {
+      "name": "获取Agent信息",
+      "status": "PASS",
+      "detail": "credits=999999, name=测试用户1774271266"
+    },
+    {
+      "name": "搜索 'python'",
+      "status": "PASS",
+      "detail": "2条"
+    },
+    {
+      "name": "搜索 '数据分析'",
+      "status": "PASS",
+      "detail": "5条"
+    },
+    {
+      "name": "搜索 '营销'",
+      "status": "PASS",
+      "detail": "2条"
+    },
+    {
+      "name": "搜索 'agent'",
+      "status": "PASS",
+      "detail": "2条"
+    },
+    {
+      "name": "浏览全部",
+      "status": "PASS",
+      "detail": "10条"
+    },
+    {
+      "name": "注册创建者",
+      "status": "PASS",
+      "detail": "credits=999999"
+    },
+    {
+      "name": "创建 'Python数据分析实战经验'",
+      "status": "PASS",
+      "detail": "id=mem_35e86ee9530c"
+    },
+    {
+      "name": "创建 '抖音投流ROI优化方案'",
+      "status": "PASS",
+      "detail": "id=mem_f4cd32418a1f"
+    },
+    {
+      "name": "创建 'FastAPI性能优化指南'",
+      "status": "PASS",
+      "detail": "id=mem_a4d03ea32119"
+    },
+    {
+      "name": "搜索 'python'",
+      "status": "PASS",
+      "detail": "1条"
+    },
+    {
+      "name": "搜索 '抖音'",
+      "status": "PASS",
+      "detail": "5条"
+    },
+    {
+      "name": "搜索 'FastAPI'",
+      "status": "PASS",
+      "detail": "3条"
+    },
+    {
+      "name": "查看我的记忆",
+      "status": "PASS",
+      "detail": "3条"
+    },
+    {
+      "name": "查看记忆详情",
+      "status": "PASS",
+      "detail": "title=Python数据分析实战经验"
+    },
+    {
+      "name": "购买记忆",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "重复购买检测",
+      "status": "PASS",
+      "detail": "正确拒绝"
+    },
+    {
+      "name": "购买后查看详情",
+      "status": "PASS",
+      "detail": "有内容=True"
+    },
+    {
+      "name": "评价记忆",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "未购买就评价",
+      "status": "PASS",
+      "detail": "正确拒绝"
+    },
+    {
+      "name": "购买自己的记忆",
+      "status": "PASS",
+      "detail": "正确拒绝自购"
+    },
+    {
+      "name": "创建团队",
+      "status": "PASS",
+      "detail": "id=team_bed6ee0485e3"
+    },
+    {
+      "name": "生成邀请码",
+      "status": "PASS",
+      "detail": "code=PR7MX0RN"
+    },
+    {
+      "name": "邀请成员",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "查看团队信息",
+      "status": "PASS",
+      "detail": "成员=2"
+    },
+    {
+      "name": "创建团队记忆",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "获取团队记忆",
+      "status": "PASS",
+      "detail": "1条"
+    },
+    {
+      "name": "非成员访问团队",
+      "status": "PASS",
+      "detail": "正确拒绝"
+    },
+    {
+      "name": "积分历史",
+      "status": "PASS",
+      "detail": "2条记录"
+    },
+    {
+      "name": "市场趋势",
+      "status": "PASS",
+      "detail": "10个分类"
+    },
+    {
+      "name": "账户余额",
+      "status": "PASS",
+      "detail": "credits=999999"
+    },
+    {
+      "name": "搜索不存在",
+      "status": "PASS",
+      "detail": "0条"
+    },
+    {
+      "name": "查看不存在记忆",
+      "status": "PASS",
+      "detail": "404"
+    },
+    {
+      "name": "无效API Key",
+      "status": "PASS",
+      "detail": "正确拒绝"
+    },
+    {
+      "name": "空关键词搜索",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "负数价格拒绝",
+      "status": "PASS",
+      "detail": ""
+    }
+  ],
+  "issues": []
+}

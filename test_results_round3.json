@@ -1,0 +1,135 @@
+{
+  "tests": [
+    {
+      "name": "注册用户0",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "注册用户1",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "注册用户2",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "注册用户3",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "注册用户4",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "批量创建10条记忆",
+      "status": "PASS",
+      "detail": "成功10条"
+    },
+    {
+      "name": "搜索批量记忆",
+      "status": "PASS",
+      "detail": "找到20条"
+    },
+    {
+      "name": "分页第1页",
+      "status": "PASS",
+      "detail": "5条"
+    },
+    {
+      "name": "分页第2页",
+      "status": "PASS",
+      "detail": "5条"
+    },
+    {
+      "name": "分页第3页",
+      "status": "PASS",
+      "detail": "5条"
+    },
+    {
+      "name": "多标签筛选",
+      "status": "PASS",
+      "detail": "5条"
+    },
+    {
+      "name": "批量购买5条记忆",
+      "status": "PASS",
+      "detail": "成功5条"
+    },
+    {
+      "name": "批量购买积分验证",
+      "status": "PASS",
+      "detail": "credits=999899, expected=999899"
+    },
+    {
+      "name": "并发注册10个用户",
+      "status": "PASS",
+      "detail": "成功10个"
+    },
+    {
+      "name": "卖家创建记忆",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "买家搜索找到记忆",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "买家查看详情",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "买家购买",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "买家评价",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "卖家查看自己的记忆",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "创建团队",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "多成员加入团队",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "创建3条团队记忆",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "团队成员查看记忆",
+      "status": "PASS",
+      "detail": "3条"
+    },
+    {
+      "name": "积分不足拒绝购买",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "查看不存在记忆返回404",
+      "status": "PASS",
+      "detail": ""
+    }
+  ],
+  "issues": []
+}
