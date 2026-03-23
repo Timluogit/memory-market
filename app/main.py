@@ -116,6 +116,10 @@ app.include_router(auto_forget_router, prefix="/api")
 from app.api.external_sources import router as external_sources_router
 app.include_router(external_sources_router, prefix="/api")
 
+# 注册评估框架路由
+from app.api.evaluation import router as evaluation_router
+app.include_router(evaluation_router)
+
 # 全局异常处理器
 from fastapi.requests import Request
 
