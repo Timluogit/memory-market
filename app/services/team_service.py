@@ -130,7 +130,7 @@ class TeamService:
             update_data["description"] = req.description
 
         if not update_data:
-            raise AppError(*INVALID_PARAMS.args)
+            raise INVALID_PARAMS
 
         # 检查团队名称是否重复
         if "name" in update_data:
@@ -499,7 +499,7 @@ class CreditService:
         team = result.scalar_one_or_none()
 
         if not team:
-            raise AppError(*NOT_FOUND.args)
+            raise NOT_FOUND
 
         # 更新积分
         team.credits += amount
@@ -537,7 +537,7 @@ class CreditService:
         team = result.scalar_one_or_none()
 
         if not team:
-            raise AppError(*NOT_FOUND.args)
+            raise NOT_FOUND
 
         # 检查余额
         if team.credits < amount:
@@ -558,7 +558,7 @@ class CreditService:
         to_agent = result.scalar_one_or_none()
 
         if not to_agent:
-            raise AppError(*NOT_FOUND.args)
+            raise NOT_FOUND
 
         to_agent.credits += amount
         to_agent.total_earned += amount

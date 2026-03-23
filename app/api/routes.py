@@ -32,7 +32,10 @@ from app.api import reranking
 router.include_router(teams.router)
 router.include_router(team_members.router)
 router.include_router(team_credits.router)
-router.include_router(memories.router)
+# 注册memories路由（放在自定义端点之后，避免路由冲突）
+# memories.router 有 prefix="/memories"，其 /{memory_id} 端点需要认证
+# routes.py 的 /memories/{memory_id} 端点公开访问
+# FastAPI 按注册顺序匹配，所以先注册routes.py的端点
 router.include_router(team_stats.router)
 router.include_router(team_activity.router)
 router.include_router(audit_logs.router)
@@ -72,7 +75,7 @@ async def get_my_balance(agent: Agent = Depends(get_current_agent), db: AsyncSes
     """获取账户余额"""
     balance = await get_balance(db, agent.agent_id)
     if not balance:
-        raise AppError(*NOT_FOUND.args)
+        raise NOT_FOUND
     return success_response(balance)
 
 @router.get("/agents/me/credits/history", tags=["Agent"])
@@ -149,7 +152,7 @@ async def get_memory_endpoint(
     # 公开访问时不传agent_id，返回摘要信息
     detail = await get_memory_detail(db, memory_id, None)
     if not detail:
-        raise AppError(*NOT_FOUND.args)
+        raise NOT_FOUND
     return success_response(detail)
 
 @router.post("/memories/{memory_id}/purchase", tags=["Memory"])
@@ -177,8 +180,21 @@ async def rate_memory_endpoint(
 ):
     """评价记忆"""
     req.memory_id = memory_id
-    result = await rate_memory(db, agent.agent_id, req)
-    return success_response(result)
+    try:
+        result = await rate_memory(db, agent.agent_id, req)
+        return success_response(result)
+    except PermissionError as e:
+        raise AppError(
+            code="NOT_PURCHASED",
+            message=str(e),
+            status_code=403
+        )
+    except ValueError as e:
+        raise AppError(
+            code="ALREADY_RATED",
+            message=str(e),
+            status_code=400
+        )
 
 @router.post("/memories/{memory_id}/verify", tags=["Memory"])
 async def verify_memory_endpoint(
@@ -208,7 +224,7 @@ async def update_memory_endpoint(
     """更新记忆（只能更新自己上传的记忆）"""
     result = await update_memory(db, memory_id, agent.agent_id, req)
     if not result:
-        raise AppError(*NOT_FOUND.args)
+        raise NOT_FOUND
     return success_response(result)
 
 @router.get("/agents/me/memories", tags=["Memory"])
@@ -242,7 +258,7 @@ async def get_memory_version_endpoint(
     """获取特定版本的详细信息"""
     result = await get_memory_version(db, memory_id, version_id)
     if not result:
-        raise AppError(*NOT_FOUND.args)
+        raise NOT_FOUND
     return success_response(result)
 
 # ============ 市场数据 ============
@@ -349,3 +365,6 @@ async def batch_capture_experience_endpoint(
     """
     result = await batch_capture_experience(db, agent.agent_id, req)
     return success_response(result)
+
+# 注册 memories.router（放在所有自定义端点之后，避免 /{memory_id} 路由冲突）
+router.include_router(memories.router)
