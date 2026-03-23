@@ -420,6 +420,32 @@ export MEMORY_MARKET_API_URL=<span class="string">"http://100.110.128.9:8000"</s
     </div>
 
     <script>
+        // Auto-detect API URL from current page origin
+        const API_URL = window.location.origin;
+
+        // Replace all hardcoded IPs with dynamic origin on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Replace text content in code/pre blocks
+            document.querySelectorAll('pre, code, .endpoint code, p, li, a, div').forEach(el => {
+                if (el.children.length === 0 || el.tagName === 'CODE' || el.tagName === 'PRE') {
+                    if (el.textContent && el.textContent.includes('100.110.128.9:8000')) {
+                        el.textContent = el.textContent.replace(/http:\/\/100\.110\.128\.9:8000/g, API_URL);
+                    }
+                }
+            });
+            // Replace data-config attributes for copy buttons
+            document.querySelectorAll('[data-config]').forEach(btn => {
+                const config = btn.getAttribute('data-config');
+                if (config && config.includes('100.110.128.9:8000')) {
+                    btn.setAttribute('data-config', config.replace(/http:\/\/100\.110\.128\.9:8000/g, API_URL));
+                }
+            });
+            // Replace href attributes
+            document.querySelectorAll('a[href*="100.110.128.9"]').forEach(a => {
+                a.href = a.href.replace(/http:\/\/100\.110\.128\.9:8000/g, API_URL);
+            });
+        });
+
         // Tab switching
         function showTab(tabId) {
             // Hide all tabs

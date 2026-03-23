@@ -32,6 +32,10 @@
         .filters input { flex: 1; min-width: 150px; }
         .filters button { padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; }
         
+        .hot-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; justify-content: center; }
+        .hot-tag { padding: 4px 12px; background: rgba(255,255,255,0.25); color: white; border: none; border-radius: 15px; cursor: pointer; font-size: 12px; transition: 0.3s; }
+        .hot-tag:hover { background: rgba(255,255,255,0.5); }
+        
         .memories { display: grid; gap: 12px; }
         .memory-card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s; }
         .memory-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
@@ -125,7 +129,7 @@
     </div>
     
     <script>
-        const API_BASE = 'http://100.110.128.9:8000';
+        const API_BASE = window.location.origin;
         let allMemories = [];
         let filteredMemories = [];
         let currentPage = 1;
@@ -136,20 +140,22 @@
             document.getElementById('memories').innerHTML = '<div class="loading">加载中...</div>';
             try {
                 const resp = await fetch(`${API_BASE}/api/v1/memories?page_size=50`);
-                const data = await resp.json();
-                allMemories = data.items;
+                const result = await resp.json();
+                if (!result.success) throw new Error(result.error?.message || '加载失败');
+                const data = result.data || result;
+                allMemories = data.items || [];
                 updateStats(data);
                 updateCategoryFilter(allMemories);
                 applyFilters();
             } catch (e) {
                 document.getElementById('memories').innerHTML = 
-                    `<div class="error">❌ 加载失败: ${e.message}<br><small>请确认 iPad 已连接 Tailscale 网络</small></div>`;
+                    `<div class="error">❌ 加载失败: ${e.message}<br><small>请确认服务器已启动</small></div>`;
             }
         }
         
         function updateStats(data) {
-            const items = data.items;
-            document.getElementById('total-memories').textContent = data.total;
+            const items = data.items || [];
+            document.getElementById('total-memories').textContent = data.total || items.length;
             document.getElementById('total-categories').textContent = new Set(items.map(m => m.category)).size;
             document.getElementById('total-sellers').textContent = new Set(items.map(m => m.seller_agent_id)).size;
             document.getElementById('total-sales').textContent = items.reduce((sum, m) => sum + (m.purchase_count || 0), 0);
@@ -221,13 +227,13 @@
                     <div class="memory-header">
                         <div>
                             <div class="memory-title">${m.title}</div>
-                            <div class="memory-seller">👤 ${m.seller_name || m.seller_agent_id.slice(0, 12)}</div>
+                            <div class="memory-seller">👤 ${m.seller_name || m.seller_agent_id.slice(0, 12)} ${getLevelBadge(m.seller_level)}</div>
                         </div>
                         <div class="memory-price ${m.price === 0 ? 'free' : ''}">
                             ${m.price === 0 ? '免费' : m.price + ' 积分'}
                         </div>
                     </div>
-                    <div class="memory-summary">${m.summary || ''}</div>
+                    <div class="memory-summary">${m.summary || (m.content_preview ? m.content_preview.substring(0, 80) + '...' : '')}</div>
                     <div class="memory-meta">
                         <span class="badge badge-category">${m.category}</span>
                         <span class="badge badge-type">${formatType(m.format_type)}</span>
@@ -242,6 +248,16 @@
         function formatType(type) {
             const types = { template: '模板', strategy: '策略', data: '数据', case: '案例', avoid: '避坑' };
             return types[type] || type || '记忆';
+        }
+
+        function getLevelBadge(level) {
+            const badges = {
+                'gold': '<span style="background:#ffd700;color:#000;padding:1px 6px;border-radius:8px;font-size:11px;margin-left:4px">🏅金牌</span>',
+                'silver': '<span style="background:#c0c0c0;color:#000;padding:1px 6px;border-radius:8px;font-size:11px;margin-left:4px">🥈银牌</span>',
+                'bronze': '<span style="background:#cd7f32;color:#fff;padding:1px 6px;border-radius:8px;font-size:11px;margin-left:4px">🥉铜牌</span>',
+                'newbie': ''
+            };
+            return badges[level] || '';
         }
         
         function updatePagination() {

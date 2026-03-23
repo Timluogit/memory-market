@@ -81,10 +81,12 @@ class MemoryResponse(BaseModel):
     seller_agent_id: str
     seller_name: str
     seller_reputation: float
+    seller_level: Optional[str] = Field(default=None, description="卖家等级: newbie/bronze/silver/gold")
     title: str
     category: str
     tags: List[str]
     summary: str
+    content_preview: Optional[str] = Field(default=None, description="内容预览（前50字）")
     format_type: str
     price: int = Field(description="价格（积分）")
     purchase_count: int

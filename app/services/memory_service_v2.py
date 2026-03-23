@@ -21,17 +21,54 @@ from math import log10
 def gen_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:12]}"
 
-def memory_to_response(memory: Memory, seller_name: str = "", seller_reputation: float = 5.0) -> MemoryResponse:
+def get_agent_level(total_transactions: int, avg_score: float = 0) -> str:
+    """计算Agent等级"""
+    if total_transactions >= 100:
+        return "gold"
+    elif total_transactions >= 50:
+        return "silver"
+    elif total_transactions >= 10:
+        return "bronze"
+    return "newbie"
+
+def memory_to_response(memory: Memory, seller_name: str = "", seller_reputation: float = 5.0, seller_total_sales: int = 0) -> MemoryResponse:
     """转换为响应格式"""
+    import json as _json
+
+    # 生成内容预览（前50字）
+    content_preview = None
+    if memory.summary:
+        content_preview = memory.summary[:50] + ("..." if len(memory.summary) > 50 else "")
+    elif memory.content:
+        try:
+            content = memory.content if isinstance(memory.content, dict) else _json.loads(memory.content)
+            text_parts = []
+            if isinstance(content, dict):
+                for v in content.values():
+                    if isinstance(v, str):
+                        text_parts.append(v)
+                    elif isinstance(v, list):
+                        for item in v:
+                            if isinstance(item, str):
+                                text_parts.append(item)
+                            elif isinstance(item, dict):
+                                text_parts.extend(str(sv) for sv in item.values() if isinstance(sv, str))
+            raw_text = " ".join(text_parts)[:50]
+            content_preview = raw_text + ("..." if len(" ".join(text_parts)) > 50 else "")
+        except (TypeError, ValueError, KeyError):
+            content_preview = str(memory.content)[:50] + "..."
+
     return MemoryResponse(
         memory_id=memory.memory_id,
         seller_agent_id=memory.seller_agent_id,
         seller_name=seller_name,
         seller_reputation=seller_reputation,
+        seller_level=get_agent_level(seller_total_sales, seller_reputation),
         title=memory.title,
         category=memory.category,
         tags=memory.tags or [],
         summary=memory.summary,
+        content_preview=content_preview,
         format_type=memory.format_type,
         price=memory.price,
         purchase_count=memory.purchase_count,
@@ -240,16 +277,17 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
     elif buyer.credits < price:
         return PurchaseResponse(success=False, message="积分不足", memory_id=memory_id, credits_spent=price, remaining_credits=buyer.credits)
 
-    # 计算分配（100%给卖家，平台不收费）
-    seller_income = price  # 卖家获得全部金额
-    platform_fee = 0  # 平台佣金为0
+    # 计算分配（5%平台佣金，95%给卖家）
+    COMMISSION_RATE = 0.05
+    platform_fee = int(price * COMMISSION_RATE) if price > 0 else 0
+    seller_income = price - platform_fee
 
     # 扣买家积分
     buyer.credits -= price
     buyer.total_spent += price
     buyer.total_purchases += 1
 
-    # 加卖家积分
+    # 加卖家积分（扣除佣金后）
     seller = await db.execute(select(Agent).where(Agent.agent_id == memory.seller_agent_id))
     seller = seller.scalar_one_or_none()
     seller.credits += seller_income
@@ -259,7 +297,7 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
     # 更新记忆统计
     memory.purchase_count += 1
 
-    # 创建购买记录（不再记录平台佣金）
+    # 创建购买记录（含平台佣金）
     purchase = Purchase(
         purchase_id=gen_id("pur"),
         buyer_agent_id=buyer_id,
@@ -267,11 +305,11 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
         memory_id=memory_id,
         amount=price,
         seller_income=seller_income,
-        platform_fee=0  # 平台不收费
+        platform_fee=platform_fee
     )
     db.add(purchase)
 
-    # 创建交易流水（不再记录佣金）
+    # 创建交易流水
     tx_buyer = Transaction(
         agent_id=buyer_id,
         tx_type="purchase",
@@ -279,7 +317,7 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
         balance_after=buyer.credits,
         related_id=memory_id,
         description=f"购买记忆: {memory.title}",
-        commission=0  # 平台不收费
+        commission=0
     )
     tx_seller = Transaction(
         agent_id=memory.seller_agent_id,
@@ -288,7 +326,7 @@ async def purchase_memory(db: AsyncSession, buyer_id: str, memory_id: str) -> Pu
         balance_after=seller.credits,
         related_id=memory_id,
         description=f"销售记忆: {memory.title}",
-        commission=0  # 平台不收费
+        commission=platform_fee
     )
     db.add(tx_buyer)
     db.add(tx_seller)

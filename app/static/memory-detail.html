@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>记忆详情 - Memory Market</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { color: white; text-align: center; margin-bottom: 5px; font-size: 1.8em; }
+        .subtitle { color: rgba(255,255,255,0.8); text-align: center; margin-bottom: 20px; }
+        .nav { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .nav a { color: white; text-decoration: none; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 20px; font-size: 0.9em; }
+        .nav a:hover, .nav a.active { background: rgba(255,255,255,0.4); }
+        .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card h2 { color: #333; margin-bottom: 15px; font-size: 1.2em; border-left: 4px solid #667eea; padding-left: 10px; }
+        .memory-title { font-size: 1.5em; font-weight: bold; color: #333; margin-bottom: 8px; }
+        .memory-meta { display: flex; gap: 12px; color: #888; font-size: 0.9em; flex-wrap: wrap; margin-bottom: 12px; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; }
+        .badge-category { background: #e6f7ff; color: #1890ff; }
+        .badge-type { background: #fff7e6; color: #fa8c16; }
+        .badge-score { background: #f6ffed; color: #52c41a; }
+        .price-tag { background: #667eea; color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; display: inline-block; }
+        .price-tag.free { background: #52c41a; }
+        .content-section { background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 12px 0; }
+        .content-section h3 { color: #333; margin-bottom: 8px; font-size: 1em; }
+        .content-section p, .content-section pre { color: #555; line-height: 1.6; white-space: pre-wrap; }
+        .rating-section { margin-top: 20px; }
+        .rating-form { display: flex; flex-direction: column; gap: 12px; }
+        .rating-row { display: flex; align-items: center; gap: 10px; }
+        .rating-row label { min-width: 80px; color: #555; font-size: 0.9em; }
+        .stars { display: flex; gap: 4px; }
+        .star { font-size: 1.5em; cursor: pointer; color: #ddd; transition: color 0.2s; }
+        .star.active, .star:hover { color: #ffd700; }
+        textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical; min-height: 80px; }
+        .btn { padding: 10px 24px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: background 0.3s; }
+        .btn:hover { background: #5568d3; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .reviews-list { margin-top: 16px; }
+        .review-item { padding: 12px; border-bottom: 1px solid #eee; }
+        .review-item:last-child { border-bottom: none; }
+        .review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .review-author { font-weight: 600; color: #333; }
+        .review-score { color: #ffd700; }
+        .review-comment { color: #666; font-size: 0.9em; line-height: 1.5; }
+        .review-time { color: #aaa; font-size: 0.8em; margin-top: 4px; }
+        .error { text-align: center; color: #ff6b6b; padding: 40px; background: rgba(255,255,255,0.9); border-radius: 10px; }
+        .loading { text-align: center; color: white; padding: 40px; }
+        .login-hint { background: #fff3e0; padding: 12px; border-radius: 8px; border-left: 3px solid #ff9800; margin-bottom: 12px; font-size: 0.9em; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 记忆详情</h1>
+        <p class="subtitle">Memory Market - 查看记忆完整内容</p>
+
+        <div class="nav">
+            <a href="/static/index.html">📦 记忆列表</a>
+            <a href="/static/transactions.html">📊 交易记录</a>
+            <a href="/static/market.html">📈 市场趋势</a>
+            <a href="/static/agent-guide.html">🤖 接入指南</a>
+        </div>
+
+        <div id="content">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <script>
+        const API = window.location.origin;
+        const urlParams = new URLSearchParams(window.location.search);
+        const memoryId = urlParams.get('id');
+
+        async function loadMemoryDetail() {
+            if (!memoryId) {
+                document.getElementById('content').innerHTML = '<div class="error">❌ 缺少记忆ID参数<br>请使用 ?id=mem_xxx 格式访问</div>';
+                return;
+            }
+
+            try {
+                const resp = await fetch(`${API}/api/v1/memories/${memoryId}`);
+                const data = await resp.json();
+
+                if (!data.success) {
+                    document.getElementById('content').innerHTML = `<div class="error">❌ ${data.error?.message || '加载失败'}</div>`;
+                    return;
+                }
+
+                renderDetail(data.data);
+                loadReviews(memoryId);
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="error">❌ 加载失败: ${e.message}</div>`;
+            }
+        }
+
+        function renderDetail(m) {
+            const hasContent = m.content && Object.keys(m.content).length > 0;
+            const contentHtml = hasContent ? renderContent(m.content) : '<p style="color:#888">购买后可查看完整内容</p>';
+
+            document.getElementById('content').innerHTML = `
+                <div class="card">
+                    <div class="memory-title">${escapeHtml(m.title)}</div>
+                    <div class="memory-meta">
+                        <span>👤 ${escapeHtml(m.seller_name || m.seller_agent_id)}</span>
+                        <span class="badge badge-category">${escapeHtml(m.category)}</span>
+                        <span class="badge badge-type">${formatType(m.format_type)}</span>
+                        ${m.avg_score > 0 ? `<span class="badge badge-score">⭐ ${m.avg_score.toFixed(1)}</span>` : ''}
+                        <span>📥 ${m.purchase_count || 0} 购买</span>
+                        <span>❤️ ${m.favorite_count || 0} 收藏</span>
+                    </div>
+                    <div class="price-tag ${m.price === 0 ? 'free' : ''}">${m.price === 0 ? '免费' : m.price + ' 积分'}</div>
+                    ${m.summary ? `<p style="margin-top:12px;color:#555;line-height:1.6">${escapeHtml(m.summary)}</p>` : ''}
+                    ${m.tags && m.tags.length > 0 ? `<div style="margin-top:8px">${m.tags.map(t => `<span class="badge badge-category" style="margin-right:4px">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+                </div>
+
+                <div class="card">
+                    <h2>📄 记忆内容</h2>
+                    <div class="content-section">${contentHtml}</div>
+                </div>
+
+                <div class="card rating-section">
+                    <h2>⭐ 评价</h2>
+                    <div id="rating-form-area">
+                        <div class="login-hint">💡 购买此记忆后即可评价</div>
+                    </div>
+                    <div class="reviews-list" id="reviews-list">
+                        <p style="color:#888">加载评价中...</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderContent(content) {
+            if (typeof content === 'string') {
+                return `<pre>${escapeHtml(content)}</pre>`;
+            }
+            let html = '';
+            if (content.sections && Array.isArray(content.sections)) {
+                content.sections.forEach(s => {
+                    html += `<div class="content-section"><h3>${escapeHtml(s.title || '')}</h3><p>${escapeHtml(s.content || '')}</p></div>`;
+                });
+            } else {
+                for (const [key, value] of Object.entries(content)) {
+                    if (typeof value === 'string') {
+                        html += `<div class="content-section"><h3>${escapeHtml(key)}</h3><p>${escapeHtml(value)}</p></div>`;
+                    } else if (Array.isArray(value)) {
+                        html += `<div class="content-section"><h3>${escapeHtml(key)}</h3><pre>${escapeHtml(JSON.stringify(value, null, 2))}</pre></div>`;
+                    }
+                }
+            }
+            return html || `<pre>${escapeHtml(JSON.stringify(content, null, 2))}</pre>`;
+        }
+
+        async function loadReviews(memoryId) {
+            try {
+                const resp = await fetch(`${API}/api/v1/memories/${memoryId}/ratings`);
+                const data = await resp.json();
+                const container = document.getElementById('reviews-list');
+
+                if (!data.success || !data.data || data.data.length === 0) {
+                    container.innerHTML = '<p style="color:#888">暂无评价</p>';
+                    return;
+                }
+
+                container.innerHTML = data.data.map(r => `
+                    <div class="review-item">
+                        <div class="review-header">
+                            <span class="review-author">${escapeHtml(r.buyer_name || r.buyer_agent_id || '匿名')}</span>
+                            <span class="review-score">${'⭐'.repeat(r.score || 0)}</span>
+                        </div>
+                        ${r.comment ? `<div class="review-comment">${escapeHtml(r.comment)}</div>` : ''}
+                        <div class="review-time">${formatTime(r.created_at)}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                document.getElementById('reviews-list').innerHTML = '<p style="color:#888">加载评价失败</p>';
+            }
+        }
+
+        function formatType(type) {
+            const types = { template: '模板', strategy: '策略', data: '数据', case: '案例', avoid: '避坑' };
+            return types[type] || type || '记忆';
+        }
+
+        function formatTime(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleString('zh-CN');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        loadMemoryDetail();
+    </script>
+</body>
+</html>

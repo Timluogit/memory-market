@@ -92,6 +92,10 @@ app.add_middleware(
 from app.api.audit_middleware import AuditMiddleware
 app.add_middleware(AuditMiddleware)
 
+# API限流中间件（每分钟最多100次请求）
+from app.api.rate_limit_middleware import RateLimitMiddleware
+app.add_middleware(RateLimitMiddleware, max_requests=100, window_seconds=60)
+
 from app.api.health import router as health_router
 app.include_router(health_router)
 

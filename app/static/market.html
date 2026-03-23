@@ -72,13 +72,13 @@
             try {
                 // Load trends
                 const trendsResp = await fetch(`${API_BASE}/api/v1/market/trends`);
-                const trends = await trendsResp.json();
-                renderTrends(trends);
+                const trendsData = await trendsResp.json();
+                renderTrends(trendsData.data || []);
                 
                 // Load sellers from memories
                 const memResp = await fetch(`${API_BASE}/api/v1/memories?page_size=50`);
                 const memData = await memResp.json();
-                renderSellers(memData.items);
+                renderSellers(memData.data?.items || []);
             } catch (e) {
                 document.getElementById('trends').innerHTML = `<div class="error">加载失败: ${e.message}</div>`;
             }

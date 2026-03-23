@@ -32,10 +32,7 @@ from app.api import reranking
 router.include_router(teams.router)
 router.include_router(team_members.router)
 router.include_router(team_credits.router)
-# 注册memories路由（放在自定义端点之后，避免路由冲突）
-# memories.router 有 prefix="/memories"，其 /{memory_id} 端点需要认证
-# routes.py 的 /memories/{memory_id} 端点公开访问
-# FastAPI 按注册顺序匹配，所以先注册routes.py的端点
+# memories.router 在自定义端点之后注册，避免路由冲突
 router.include_router(team_stats.router)
 router.include_router(team_activity.router)
 router.include_router(audit_logs.router)
@@ -143,6 +140,34 @@ async def search_memories_endpoint(
     )
     return success_response(result)
 
+@router.get("/memories/search", tags=["Memory"])
+async def search_memories_alias(
+    query: Optional[str] = Query("", description="搜索关键词"),
+    category: Optional[str] = Query("", description="分类筛选"),
+    platform: Optional[str] = Query("", description="平台筛选"),
+    format_type: Optional[str] = Query("", description="类型筛选"),
+    min_score: Optional[float] = Query(0, description="最低评分"),
+    max_price: Optional[int] = Query(999999, description="最高价格（分）"),
+    page: Optional[int] = Query(1, ge=1),
+    page_size: Optional[int] = Query(10, ge=1, le=50),
+    sort_by: Optional[str] = Query("relevance"),
+    search_type: Optional[str] = Query("hybrid"),
+    db: AsyncSession = Depends(get_db)
+):
+    """搜索记忆（别名端点）"""
+    if search_type not in ["keyword", "semantic", "hybrid"]:
+        raise AppError(
+            code="INVALID_SEARCH_TYPE",
+            message=f"无效的搜索类型: {search_type}",
+            status_code=400
+        )
+    result = await search_memories(
+        db, query=query, category=category, platform=platform,
+        format_type=format_type, min_score=min_score, max_price=max_price,
+        page=page, page_size=page_size, sort_by=sort_by, search_type=search_type
+    )
+    return success_response(result)
+
 @router.get("/memories/{memory_id}", tags=["Memory"])
 async def get_memory_endpoint(
     memory_id: str,
@@ -195,6 +220,59 @@ async def rate_memory_endpoint(
             message=str(e),
             status_code=400
         )
+
+@router.get("/memories/{memory_id}/ratings", tags=["Memory"])
+async def list_memory_ratings(
+    memory_id: str,
+    page: Optional[int] = Query(1, ge=1),
+    page_size: Optional[int] = Query(20, ge=1, le=50),
+    db: AsyncSession = Depends(get_db)
+):
+    """获取记忆的评价列表（公开）"""
+    from sqlalchemy import select, func, and_
+    from app.models.tables import Rating, Agent
+
+    # 验证记忆存在
+    from app.models.tables import Memory
+    mem_check = await db.execute(select(Memory).where(Memory.memory_id == memory_id))
+    if not mem_check.scalar_one_or_none():
+        raise NOT_FOUND
+
+    # 获取总数
+    count_result = await db.execute(
+        select(func.count(Rating.rating_id)).where(Rating.memory_id == memory_id)
+    )
+    total = count_result.scalar() or 0
+
+    # 获取评价列表
+    offset = (page - 1) * page_size
+    result = await db.execute(
+        select(Rating, Agent.name).join(
+            Agent, Rating.buyer_agent_id == Agent.agent_id
+        ).where(
+            Rating.memory_id == memory_id
+        ).order_by(Rating.created_at.desc()).limit(page_size).offset(offset)
+    )
+    rows = result.all()
+
+    items = []
+    for rating, buyer_name in rows:
+        items.append({
+            "rating_id": rating.rating_id,
+            "buyer_agent_id": rating.buyer_agent_id,
+            "buyer_name": buyer_name,
+            "score": rating.score,
+            "effectiveness": rating.effectiveness,
+            "comment": rating.comment,
+            "created_at": rating.created_at.isoformat() if rating.created_at else None
+        })
+
+    return success_response({
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size
+    })
 
 @router.post("/memories/{memory_id}/verify", tags=["Memory"])
 async def verify_memory_endpoint(
