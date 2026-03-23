@@ -1,6 +1,28 @@
 version: '3.8'
 
 services:
+  # Qdrant 向量数据库
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: memory-market-qdrant
+    ports:
+      - "6333:6333"  # Qdrant API
+      - "6334:6334"  # Qdrant Dashboard（可选）
+    volumes:
+      - ./data/qdrant:/qdrant/storage  # Qdrant 数据持久化
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__LOG_LEVEL=INFO
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - memory-market-net
+
   api:
     build:
       context: .
@@ -12,6 +34,9 @@ services:
     volumes:
       # 数据持久化：SQLite 数据库
       - ./data:/app/data
+    depends_on:
+      qdrant:
+        condition: service_healthy
     environment:
       # 应用配置
       - APP_NAME=Agent Memory Market
@@ -30,6 +55,11 @@ services:
       - MCP_HOST=0.0.0.0
       - MCP_PORT=8001
       - MEMORY_MARKET_API_URL=http://localhost:8000/api/v1
+      # Qdrant 配置（向量搜索）
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_API_KEY=
+      - EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
+      - EMBEDDING_DEVICE=cpu
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -43,8 +73,3 @@ services:
 networks:
   memory-market-net:
     driver: bridge
-
-volumes:
-  # 如果需要使用命名卷而非绑定挂载，可以取消注释
-  # memory-market-data:
-  #   driver: local

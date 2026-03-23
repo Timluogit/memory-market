@@ -30,4 +30,31 @@ class Settings:
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
     STRIPE_SECRET_KEY: Optional[str] = os.getenv("STRIPE_SECRET_KEY")
 
+    # Qdrant 向量搜索
+    QDRANT_URL: str = os.getenv("QDRANT_URL", "http://localhost:6333")
+    QDRANT_API_KEY: Optional[str] = os.getenv("QDRANT_API_KEY")
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
+    EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cpu")
+
+    # 审计日志
+    AUDIT_LOG_ENABLED: bool = os.getenv("AUDIT_LOG_ENABLED", "true").lower() == "true"
+    AUDIT_LOG_RETENTION_DAYS: int = int(os.getenv("AUDIT_LOG_RETENTION_DAYS", "90"))
+    AUDIT_LOG_ARCHIVE_ENABLED: bool = os.getenv("AUDIT_LOG_ARCHIVE_ENABLED", "false").lower() == "true"
+    AUDIT_LOG_ASYNC_WRITE: bool = os.getenv("AUDIT_LOG_ASYNC_WRITE", "true").lower() == "true"
+
+    # 数字签名
+    DIGITAL_SIGNATURE_ENABLED: bool = os.getenv("DIGITAL_SIGNATURE_ENABLED", "true").lower() == "true"
+    DIGITAL_SIGNATURE_ALGORITHM: str = os.getenv("DIGITAL_SIGNATURE_ALGORITHM", "RSA-SHA256")
+    DIGITAL_SIGNATURE_KEY_SIZE: int = int(os.getenv("DIGITAL_SIGNATURE_KEY_SIZE", "2048"))
+    KEY_ENCRYPTION_SALT: str = os.getenv("KEY_ENCRYPTION_SALT", "")
+
+    # 搜索缓存
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    CACHE_ENABLED: bool = os.getenv("CACHE_ENABLED", "true").lower() == "true"
+    CACHE_TTL: int = int(os.getenv("CACHE_TTL", "3600"))  # 1小时
+    CACHE_ON_MISS: bool = os.getenv("CACHE_ON_MISS", "true").lower() == "true"
+    CACHE_DELAY_INVALIDATION: bool = os.getenv("CACHE_DELAY_INVALIDATION", "true").lower() == "true"
+    CACHE_DELAY_SECONDS: int = int(os.getenv("CACHE_DELAY_SECONDS", "5"))
+    CACHE_MAX_MEMORY: str = os.getenv("CACHE_MAX_MEMORY", "2gb")
+
 settings = Settings()

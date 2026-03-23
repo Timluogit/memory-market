@@ -15,6 +15,25 @@ async def lifespan(app: FastAPI):
     """应用生命周期"""
     # 启动时初始化数据库
     await init_db()
+
+    # 初始化缓存系统
+    if settings.CACHE_ENABLED:
+        from app.api.search_cache_middleware import get_search_cache_middleware
+        from app.services.cache_invalidation_service import get_cache_invalidation_service
+
+        try:
+            # 初始化搜索缓存中间件
+            cache_middleware = await get_search_cache_middleware()
+            print(f"✅ 搜索缓存中间件初始化成功 (TTL: {settings.CACHE_TTL}s)")
+
+            # 初始化缓存失效服务
+            invalidation_service = await get_cache_invalidation_service()
+            print(f"✅ 缓存失效服务初始化成功")
+
+        except Exception as e:
+            print(f"⚠️  缓存系统初始化失败: {e}")
+            print(f"💡 请确保Redis已启动: {settings.REDIS_URL}")
+
     print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} 启动完成")
     yield
     # 关闭时清理
@@ -37,12 +56,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 审计日志中间件
+from app.api.audit_middleware import AuditMiddleware
+app.add_middleware(AuditMiddleware)
+
 # 注册路由
 app.include_router(router, prefix="/api/v1")
 
 # 注册交易路由
 from app.api.transactions import router as transactions_router
 app.include_router(transactions_router)
+
+# 注册团队管理路由
+from app.api.teams import router as teams_router
+from app.api.team_members import router as team_members_router
+from app.api.team_credits import router as team_credits_router
+
+app.include_router(teams_router, prefix="/api")
+app.include_router(team_members_router, prefix="/api")
+app.include_router(team_credits_router, prefix="/api")
 
 # 全局异常处理器
 from fastapi.requests import Request

@@ -1,5 +1,6 @@
 """数据库表模型"""
-from sqlalchemy import Column, String, Integer, Float, Text, Boolean, DateTime, JSON, ForeignKey
+from sqlalchemy import Column, String, Integer, Float, Text, Boolean, DateTime, JSON, ForeignKey, UniqueConstraint, Index
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.database import Base
 import uuid
@@ -35,10 +36,15 @@ class Agent(Base):
 class Memory(Base):
     """记忆表"""
     __tablename__ = "memories"
-    
+
     memory_id = Column(String(50), primary_key=True, default=lambda: gen_id("mem"))
     seller_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
-    
+
+    # 团队协作字段
+    team_id = Column(String(50), ForeignKey("teams.team_id"), nullable=True, index=True)
+    team_access_level = Column(String(20), default="private")  # private/team_only/public
+    created_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True, index=True)  # 记忆创建者（团队记忆场景）
+
     # 内容
     title = Column(String(200), nullable=False)
     category = Column(String(200), nullable=False, index=True)
@@ -46,26 +52,35 @@ class Memory(Base):
     summary = Column(Text, nullable=False)
     content = Column(JSON, nullable=False)  # 结构化内容
     format_type = Column(String(50), default="template")  # template/strategy/data/case/warning
-    
+
     # 交易
     price = Column(Integer, nullable=False)  # 分
     purchase_count = Column(Integer, default=0)
     favorite_count = Column(Integer, default=0)
-    
+
     # 评分
     total_score = Column(Integer, default=0)
     score_count = Column(Integer, default=0)
     avg_score = Column(Float, default=0.0)
-    
+
     # 验证
     verification_data = Column(JSON, nullable=True)
     verification_score = Column(Float, nullable=True)
-    
+
     # 状态
     is_active = Column(Boolean, default=True)
     expires_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # 关系
+    team = relationship("Team", back_populates="memories", foreign_keys=[team_id])
+    created_by = relationship("Agent", foreign_keys=[created_by_agent_id])
+
+    # 索引
+    __table_args__ = (
+        Index('idx_memories_team_access', 'team_id', 'team_access_level'),
+    )
 
 class Purchase(Base):
     """购买记录表"""
@@ -167,3 +182,522 @@ class PlatformStats(Base):
     date = Column(DateTime, nullable=True)  # 统计日期
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class Team(Base):
+    """团队表"""
+    __tablename__ = "teams"
+
+    team_id = Column(String(50), primary_key=True, default=lambda: gen_id("team"))
+
+    # 基本信息
+    name = Column(String(50), nullable=False, index=True)  # 团队名称
+    description = Column(Text, nullable=True)  # 团队描述
+
+    # Owner 信息
+    owner_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
+
+    # 统计
+    member_count = Column(Integer, default=1)  # 成员数量（含 Owner）
+    memory_count = Column(Integer, default=0)  # 团队记忆数量
+
+    # 积分池
+    credits = Column(Integer, default=0)  # 团队积分
+    total_earned = Column(Integer, default=0)  # 总收入
+    total_spent = Column(Integer, default=0)  # 总支出
+
+    # 状态
+    is_active = Column(Boolean, default=True)  # 是否活跃
+    archived_at = Column(DateTime, nullable=True)  # 归档时间（解散时）
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # 关系
+    members = relationship("TeamMember", back_populates="team", cascade="all, delete-orphan")
+    memories = relationship("Memory", back_populates="team", cascade="all, delete-orphan")
+    invite_codes = relationship("TeamInviteCode", back_populates="team", cascade="all, delete-orphan")
+    credit_transactions = relationship("TeamCreditTransaction", back_populates="team", cascade="all, delete-orphan")
+    owner = relationship("Agent", foreign_keys=[owner_agent_id])
+
+
+class TeamMember(Base):
+    """团队成员表"""
+    __tablename__ = "team_members"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    team_id = Column(String(50), ForeignKey("teams.team_id"), nullable=False, index=True)
+    agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
+
+    # 角色枚举
+    role = Column(String(20), nullable=False, default="member")  # owner/admin/member
+
+    # 元数据
+    joined_at = Column(DateTime, server_default=func.now())  # 加入时间
+    left_at = Column(DateTime, nullable=True)  # 离开时间（退出或被移除）
+    is_active = Column(Boolean, default=True)  # 是否活跃
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # 关系
+    team = relationship("Team", back_populates="members")
+    agent = relationship("Agent")
+
+    # 索引和约束
+    __table_args__ = (
+        UniqueConstraint('team_id', 'agent_id', name='uq_team_member'),
+        Index('idx_team_members_active', 'team_id', 'is_active'),
+    )
+
+
+class TeamInviteCode(Base):
+    """团队邀请码表"""
+    __tablename__ = "team_invite_codes"
+
+    invite_code_id = Column(String(50), primary_key=True, default=lambda: gen_id("inv"))
+
+    team_id = Column(String(50), ForeignKey("teams.team_id"), nullable=False, index=True)
+    code = Column(String(8), unique=True, nullable=False, index=True)  # 8位邀请码
+
+    # 状态
+    is_active = Column(Boolean, default=True)  # 是否有效
+    used_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True)  # 使用者
+    used_at = Column(DateTime, nullable=True)  # 使用时间
+
+    # 有效期
+    expires_at = Column(DateTime, nullable=False)  # 过期时间（默认7天）
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # 关系
+    team = relationship("Team", back_populates="invite_codes")
+    used_by = relationship("Agent")
+
+
+class TeamCreditTransaction(Base):
+    """团队积分交易流水表"""
+    __tablename__ = "team_credit_transactions"
+
+    tx_id = Column(String(50), primary_key=True, default=lambda: gen_id("tctx"))
+
+    team_id = Column(String(50), ForeignKey("teams.team_id"), nullable=False, index=True)
+    agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True, index=True)  # 操作者（充值时为成员，其他可为空）
+
+    tx_type = Column(String(50), nullable=False)  # recharge（充值）/purchase（购买）/sale（销售）/refund（退款）
+    amount = Column(Integer, nullable=False)  # 正数=收入，负数=支出
+    balance_after = Column(Integer, nullable=False)  # 交易后余额
+
+    related_id = Column(String(50), nullable=True)  # 关联ID（记忆ID、购买ID等）
+    description = Column(String(200), nullable=True)  # 说明
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now())
+
+    # 关系
+    team = relationship("Team", back_populates="credit_transactions")
+    agent = relationship("Agent")
+
+
+class TeamActivityLog(Base):
+    """团队活动日志表"""
+    __tablename__ = "team_activity_logs"
+
+    activity_id = Column(String(50), primary_key=True, default=lambda: gen_id("act"))
+
+    team_id = Column(String(50), ForeignKey("teams.team_id"), nullable=False, index=True)
+    agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True, index=True)  # 操作者（可为空，如系统操作）
+
+    activity_type = Column(String(50), nullable=False, index=True)  # memory_created/memory_updated/memory_deleted/memory_purchased/member_joined/member_left/credits_added/credits_spent
+    description = Column(Text, nullable=False)  # 活动描述
+    related_id = Column(String(50), nullable=True, index=True)  # 关联ID（记忆ID、购买ID等）
+    extra_data = Column(JSON, nullable=True)  # 额外信息（避免使用 metadata 保留字）
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+    # 关系
+    team = relationship("Team")
+    agent = relationship("Agent")
+
+    # 索引
+    __table_args__ = (
+        Index('idx_team_activity_team_type', 'team_id', 'activity_type'),
+        Index('idx_team_activity_created', 'team_id', 'created_at'),
+    )
+
+
+class AuditLog(Base):
+    """审计日志表"""
+    __tablename__ = "audit_logs"
+
+    log_id = Column(String(50), primary_key=True, default=lambda: gen_id("audit"))
+
+    # 操作者信息
+    actor_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True, index=True)
+    actor_name = Column(String(100), nullable=True)  # 操作者名称快照（即使删除用户也能追溯）
+
+    # 操作信息
+    action_type = Column(String(50), nullable=False, index=True)  # login/create/update/delete/purchase/export/...
+    action_category = Column(String(50), nullable=False, index=True)  # auth/memory/team/transaction/system
+
+    # 目标对象
+    target_type = Column(String(50), nullable=True, index=True)  # agent/memory/team/purchase/...
+    target_id = Column(String(50), nullable=True, index=True)
+    target_name = Column(String(200), nullable=True)  # 目标对象名称快照
+
+    # 请求信息
+    http_method = Column(String(10), nullable=True)  # GET/POST/PUT/DELETE
+    endpoint = Column(String(200), nullable=True)  # API endpoint
+    ip_address = Column(String(45), nullable=True)  # IPv4/IPv6
+    user_agent = Column(String(500), nullable=True)
+
+    # 操作结果
+    status = Column(String(20), nullable=False, index=True)  # success/failure/forbidden/not_found/error
+    status_code = Column(Integer, nullable=True)  # HTTP状态码
+    error_message = Column(Text, nullable=True)
+
+    # 详细信息（脱敏后）
+    request_data = Column(JSON, nullable=True)  # 请求数据（敏感信息已脱敏）
+    response_data = Column(JSON, nullable=True)  # 响应数据（敏感信息已脱敏）
+    changes = Column(JSON, nullable=True)  # 变更详情（update操作）
+
+    # 安全信息
+    session_id = Column(String(100), nullable=True)  # 会话ID
+    request_id = Column(String(100), nullable=True, index=True)  # 请求追踪ID
+
+    # 不可篡改签名
+    signature = Column(String(100), nullable=True)  # 日志内容的数字签名
+    signature_algorithm = Column(String(50), nullable=True)  # 签名算法（如 RSA-SHA256）
+    signature_timestamp = Column(DateTime, nullable=True)  # 签名时间戳
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+    # 关系
+    actor = relationship("Agent", foreign_keys=[actor_agent_id])
+
+    # 索引
+    __table_args__ = (
+        Index('idx_audit_actor_action', 'actor_agent_id', 'action_type'),
+        Index('idx_audit_target', 'target_type', 'target_id'),
+        Index('idx_audit_time_range', 'created_at', 'action_type'),
+        Index('idx_audit_status_time', 'status', 'created_at'),
+    )
+
+
+class AuditLogExport(Base):
+    """审计日志导出记录表"""
+    __tablename__ = "audit_log_exports"
+
+    export_id = Column(String(50), primary_key=True, default=lambda: gen_id("exp"))
+
+    # 导出者信息
+    exported_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
+    exported_by_name = Column(String(100), nullable=True)
+
+    # 导出配置
+    export_format = Column(String(20), nullable=False)  # csv/json/pdf
+
+    # 过滤条件
+    filters = Column(JSON, nullable=False)  # 时间范围、操作类型、用户等过滤条件
+    record_count = Column(Integer, default=0)  # 导出的记录数
+
+    # 导出状态
+    status = Column(String(20), nullable=False, index=True)  # pending/processing/completed/failed
+    progress = Column(Integer, default=0)  # 进度 0-100
+    error_message = Column(Text, nullable=True)
+
+    # 文件信息
+    file_path = Column(String(500), nullable=True)  # 导出文件存储路径
+    file_size = Column(Integer, nullable=True)  # 文件大小（字节）
+    file_url = Column(String(500), nullable=True)  # 下载链接（临时）
+    expires_at = Column(DateTime, nullable=True)  # 下载链接过期时间
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now())
+    completed_at = Column(DateTime, nullable=True)
+
+    # 关系
+    exported_by = relationship("Agent", foreign_keys=[exported_by_agent_id])
+
+
+class SearchLog(Base):
+    """搜索日志表"""
+    __tablename__ = "search_logs"
+
+    log_id = Column(String(50), primary_key=True, default=lambda: gen_id("search"))
+
+    # 搜索信息
+    agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
+    query = Column(Text, nullable=False)  # 搜索查询
+    search_type = Column(String(20), nullable=False, index=True)  # vector/keyword/hybrid
+
+    # 过滤条件
+    category = Column(String(200), nullable=True, index=True)
+    platform = Column(String(50), nullable=True, index=True)
+    format_type = Column(String(50), nullable=True, index=True)
+    min_score = Column(Float, nullable=True)
+    max_price = Column(Integer, nullable=True)
+    sort_by = Column(String(20), nullable=True)  # relevance/created_at/purchase_count/price
+
+    # 搜索结果
+    result_count = Column(Integer, default=0)  # 返回的结果数
+    top_result_id = Column(String(50), nullable=True)  # 第一个结果ID（用于点击追踪）
+
+    # 性能指标
+    response_time_ms = Column(Integer, nullable=False)  # 响应时间（毫秒）
+    semantic_score = Column(Float, nullable=True)  # 语义搜索得分（如果有）
+    keyword_score = Column(Float, nullable=True)  # 关键词搜索得分（如果有）
+
+    # A/B测试信息
+    ab_test_id = Column(String(50), nullable=True, index=True)  # A/B测试ID
+    ab_test_group = Column(String(10), nullable=True)  # A/B分组
+
+    # 用户会话信息
+    session_id = Column(String(100), nullable=True, index=True)  # 会话ID（追踪搜索路径）
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+    # 关系
+    agent = relationship("Agent", foreign_keys=[agent_id])
+
+    # 索引
+    __table_args__ = (
+        Index('idx_search_logs_agent_time', 'agent_id', 'created_at'),
+        Index('idx_search_logs_query_time', 'query', 'created_at'),
+        Index('idx_search_logs_type_time', 'search_type', 'created_at'),
+    )
+
+
+class SearchClick(Base):
+    """搜索点击记录表"""
+    __tablename__ = "search_clicks"
+
+    click_id = Column(String(50), primary_key=True, default=lambda: gen_id("click"))
+
+    # 关联信息
+    search_log_id = Column(String(50), ForeignKey("search_logs.log_id"), nullable=False, index=True)
+    memory_id = Column(String(50), ForeignKey("memories.memory_id"), nullable=False, index=True)
+
+    # 点击位置
+    position = Column(Integer, nullable=False)  # 在搜索结果中的位置（1-based）
+
+    # 用户信息
+    agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
+
+    # 点击行为
+    click_type = Column(String(20), nullable=False)  # detail/purchase/favorite
+
+    # A/B测试信息（复制自搜索日志）
+    ab_test_id = Column(String(50), nullable=True, index=True)
+    ab_test_group = Column(String(10), nullable=True)
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+    # 关系
+    search_log = relationship("SearchLog", foreign_keys=[search_log_id])
+    memory = relationship("Memory", foreign_keys=[memory_id])
+    agent = relationship("Agent", foreign_keys=[agent_id])
+
+    # 索引
+    __table_args__ = (
+        Index('idx_search_clicks_agent_time', 'agent_id', 'created_at'),
+        Index('idx_search_clicks_memory_time', 'memory_id', 'created_at'),
+    )
+
+
+class SearchABTest(Base):
+    """搜索A/B测试配置表"""
+    __tablename__ = "search_ab_tests"
+
+    test_id = Column(String(50), primary_key=True, default=lambda: gen_id("abtest"))
+
+    # 测试基本信息
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+
+    # 创建者信息
+    created_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
+
+    # 测试配置
+    test_type = Column(String(50), nullable=False)  # algorithm/reranking/filtering/sorting
+    start_at = Column(DateTime, nullable=False)
+    end_at = Column(DateTime, nullable=False)
+
+    # 分流配置
+    split_ratio = Column(JSON, nullable=False)  # {"A": 0.5, "B": 0.5}
+
+    # A/B组配置
+    group_configs = Column(JSON, nullable=False)  # {"A": {"algorithm": "vector"}, "B": {"algorithm": "hybrid"}}
+
+    # 目标指标
+    metrics = Column(JSON, nullable=False)  # ["ctr", "zero_results_rate", "avg_response_time"]
+
+    # 统计信息
+    total_searches = Column(Integer, default=0)
+    group_stats = Column(JSON, nullable=True)  # {"A": {"searches": 100, "clicks": 25}, "B": {...}}
+
+    # 测试结果
+    results = Column(JSON, nullable=True)  # 统计分析结果
+    significance = Column(Float, nullable=True)  # 统计显著性 p-value
+    winner = Column(String(10), nullable=True)  # 获胜组
+
+    # 状态
+    status = Column(String(20), nullable=False, default="draft")  # draft/running/completed/cancelled
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # 关系
+    created_by = relationship("Agent", foreign_keys=[created_by_agent_id])
+
+    # 索引
+    __table_args__ = (
+        Index('idx_search_ab_tests_status', 'status', 'created_at'),
+        Index('idx_search_ab_tests_time', 'start_at', 'end_at'),
+    )
+
+
+class AnomalyEvent(Base):
+    """异常事件表"""
+    __tablename__ = "anomaly_events"
+
+    event_id = Column(String(50), primary_key=True, default=lambda: gen_id("anom"))
+
+    # 异常类型
+    anomaly_type = Column(String(50), nullable=False, index=True)  # login/transaction/query/behavior/system
+    anomaly_subtype = Column(String(50), nullable=False, index=True)  # remote_login/large_amount/sensitive_word/...
+    severity = Column(String(20), nullable=False, index=True)  # critical/warning/info
+
+    # 目标对象
+    target_type = Column(String(50), nullable=True, index=True)  # agent/memory/team/...
+    target_id = Column(String(50), nullable=True, index=True)
+
+    # 异常详情
+    title = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    evidence = Column(JSON, nullable=True)  # 异常证据数据
+
+    # 检测信息
+    detected_at = Column(DateTime, server_default=func.now(), index=True)
+    detection_rule_id = Column(String(50), ForeignKey("anomaly_rules.rule_id"), nullable=True, index=True)
+    confidence = Column(Float, nullable=True)  # 检测置信度 0-1
+
+    # 状态
+    status = Column(String(20), nullable=False, default="new", index=True)  # new/investigating/resolved/false_positive
+    confirmed_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True)
+    confirmed_at = Column(DateTime, nullable=True)
+    resolution_note = Column(Text, nullable=True)
+
+    # 关系
+    detection_rule = relationship("AnomalyRule", foreign_keys=[detection_rule_id])
+    confirmed_by = relationship("Agent", foreign_keys=[confirmed_by_agent_id])
+    alerts = relationship("AnomalyAlert", back_populates="event", cascade="all, delete-orphan")
+
+    # 索引
+    __table_args__ = (
+        Index('idx_anomaly_events_type_time', 'anomaly_type', 'detected_at'),
+        Index('idx_anomaly_events_severity_time', 'severity', 'detected_at'),
+        Index('idx_anomaly_events_status_time', 'status', 'detected_at'),
+    )
+
+
+class AnomalyAlert(Base):
+    """异常告警表"""
+    __tablename__ = "anomaly_alerts"
+
+    alert_id = Column(String(50), primary_key=True, default=lambda: gen_id("alert"))
+
+    # 关联异常事件
+    event_id = Column(String(50), ForeignKey("anomaly_events.event_id"), nullable=False, index=True)
+
+    # 告警信息
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=False)
+    severity = Column(String(20), nullable=False, index=True)  # critical/warning/info
+
+    # 通知渠道
+    channel_type = Column(String(20), nullable=False, index=True)  # email/webhook/slack
+    channel_config = Column(JSON, nullable=True)  # 渠道配置
+
+    # 告警状态
+    status = Column(String(20), nullable=False, default="pending", index=True)  # pending/sent/failed/acknowledged
+    sent_at = Column(DateTime, nullable=True)
+    ack_at = Column(DateTime, nullable=True)
+    ack_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True)
+
+    # 错误信息
+    error_message = Column(Text, nullable=True)
+    retry_count = Column(Integer, default=0)
+    max_retries = Column(Integer, default=3)
+
+    # 聚合信息
+    aggregation_key = Column(String(100), nullable=True, index=True)  # 聚合键
+    aggregated_count = Column(Integer, default=1)  # 聚合数量
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+    # 关系
+    event = relationship("AnomalyEvent", back_populates="alerts")
+    ack_by = relationship("Agent", foreign_keys=[ack_by_agent_id])
+
+    # 索引
+    __table_args__ = (
+        Index('idx_anomaly_alerts_status_time', 'status', 'created_at'),
+        Index('idx_anomaly_alerts_channel_time', 'channel_type', 'created_at'),
+    )
+
+
+class AnomalyRule(Base):
+    """异常检测规则表"""
+    __tablename__ = "anomaly_rules"
+
+    rule_id = Column(String(50), primary_key=True, default=lambda: gen_id("rule"))
+
+    # 规则信息
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+
+    # 规则配置
+    anomaly_type = Column(String(50), nullable=False, index=True)  # login/transaction/query/behavior/system
+    anomaly_subtype = Column(String(50), nullable=False, index=True)
+    detection_logic = Column(JSON, nullable=False)  # 检测逻辑配置
+
+    # 阈值配置
+    threshold_config = Column(JSON, nullable=True)  # 阈值配置
+
+    # 告警配置
+    alert_severity = Column(String(20), nullable=False, default="warning")  # critical/warning/info
+    alert_channels = Column(JSON, nullable=False)  # ["email", "webhook", "slack"]
+    alert_cooldown_minutes = Column(Integer, default=60)  # 告警冷却时间（分钟）
+
+    # 统计信息
+    total_detections = Column(Integer, default=0)  # 总检测次数
+    true_positive_count = Column(Integer, default=0)  # 真阳性数
+    false_positive_count = Column(Integer, default=0)  # 假阳性数
+
+    # 状态
+    is_enabled = Column(Boolean, default=True, index=True)
+
+    # 元数据
+    created_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # 关系
+    created_by = relationship("Agent", foreign_keys=[created_by_agent_id])
+
+    # 索引
+    __table_args__ = (
+        Index('idx_anomaly_rules_type_enabled', 'anomaly_type', 'is_enabled'),
+    )
