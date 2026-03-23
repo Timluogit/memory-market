@@ -111,4 +111,39 @@ class Settings:
     IN_MEMORY_KEYWORD_WEIGHT: float = float(os.getenv("IN_MEMORY_KEYWORD_WEIGHT", "0.4"))
     IN_MEMORY_RERANK_ENABLED: bool = os.getenv("IN_MEMORY_RERANK_ENABLED", "true").lower() == "true"
 
+    # ===== 智能重排（Smart Reranking） =====
+    SMART_RERANK_ENABLED: bool = os.getenv("SMART_RERANK_ENABLED", "true").lower() == "true"
+    SMART_RERANK_STRATEGY: str = os.getenv("SMART_RERANK_STRATEGY", "balanced")
+    # 预设策略: balanced | semantic_heavy | keyword_heavy | freshness_first | quality_first | personalized
+    SMART_RERANK_USE_CROSS_ENCODER: bool = os.getenv("SMART_RERANK_USE_CROSS_ENCODER", "true").lower() == "true"
+    SMART_RERANK_CE_WEIGHT: float = float(os.getenv("SMART_RERANK_CE_WEIGHT", "0.70"))
+    SMART_RERANK_DYNAMIC_WEIGHTS: bool = os.getenv("SMART_RERANK_DYNAMIC_WEIGHTS", "true").lower() == "true"
+    SMART_RERANK_TOP_K: int = int(os.getenv("SMART_RERANK_TOP_K", "20"))
+    SMART_RERANK_THRESHOLD: float = float(os.getenv("SMART_RERANK_THRESHOLD", "0.0"))
+    SMART_RERANK_MIN_CANDIDATES: int = int(os.getenv("SMART_RERANK_MIN_CANDIDATES", "5"))
+    SMART_RERANK_CACHE_ENABLED: bool = os.getenv("SMART_RERANK_CACHE_ENABLED", "true").lower() == "true"
+    SMART_RERANK_CACHE_TTL: int = int(os.getenv("SMART_RERANK_CACHE_TTL", "3600"))
+
+    # 特征权重（自定义模式下使用，覆盖策略预设）
+    # 语义
+    SMART_RERANK_W_SEMANTIC: float = float(os.getenv("SMART_RERANK_W_SEMANTIC", "0.30"))
+    SMART_RERANK_W_EMBEDDING: float = float(os.getenv("SMART_RERANK_W_EMBEDDING", "0.10"))
+    # 关键词
+    SMART_RERANK_W_KW_EXACT: float = float(os.getenv("SMART_RERANK_W_KW_EXACT", "0.08"))
+    SMART_RERANK_W_KW_BM25: float = float(os.getenv("SMART_RERANK_W_KW_BM25", "0.07"))
+    SMART_RERANK_W_KW_TITLE: float = float(os.getenv("SMART_RERANK_W_KW_TITLE", "0.05"))
+    SMART_RERANK_W_KW_TAG: float = float(os.getenv("SMART_RERANK_W_KW_TAG", "0.03"))
+    # 时效性
+    SMART_RERANK_W_RECENCY: float = float(os.getenv("SMART_RERANK_W_RECENCY", "0.06"))
+    SMART_RERANK_W_FRESHNESS: float = float(os.getenv("SMART_RERANK_W_FRESHNESS", "0.04"))
+    # 用户偏好
+    SMART_RERANK_W_INTEREST: float = float(os.getenv("SMART_RERANK_W_INTEREST", "0.05"))
+    SMART_RERANK_W_HISTORY: float = float(os.getenv("SMART_RERANK_W_HISTORY", "0.04"))
+    SMART_RERANK_W_CATEGORY: float = float(os.getenv("SMART_RERANK_W_CATEGORY", "0.03"))
+    # 质量
+    SMART_RERANK_W_QUALITY: float = float(os.getenv("SMART_RERANK_W_QUALITY", "0.05"))
+    SMART_RERANK_W_POPULARITY: float = float(os.getenv("SMART_RERANK_W_POPULARITY", "0.04"))
+    SMART_RERANK_W_RATING: float = float(os.getenv("SMART_RERANK_W_RATING", "0.03"))
+    SMART_RERANK_W_VERIFICATION: float = float(os.getenv("SMART_RERANK_W_VERIFICATION", "0.03"))
+
 settings = Settings()
