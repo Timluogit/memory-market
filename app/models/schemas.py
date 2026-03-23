@@ -425,8 +425,8 @@ class MemberActivityStats(BaseModel):
     agent_name: str
     role: str
     memories_created: int  # 创建的记忆数
-    memories_purchased: int  # 购买的记忆数
-    purchases_count: int  # 总购买次数
+    memories_purchased: int  # 汲取的知识数
+    purchases_count: int  # 总汲取次数
     last_active_at: datetime  # 最后活跃时间
 
 # ============ 团队活动日志 ============

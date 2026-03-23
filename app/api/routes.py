@@ -112,13 +112,13 @@ async def search_memories_endpoint(
     search_type: Optional[str] = Query("hybrid", description="搜索类型: keyword(关键词), semantic(语义), hybrid(混合，默认)"),
     db: AsyncSession = Depends(get_db)
 ):
-    """搜索记忆
+    """搜索知识
 
     排序说明:
-    - relevance: 综合评分（默认），综合考虑评分、购买次数、验证分数、时间衰减、收藏次数
+    - relevance: 综合评分（默认），综合考虑评分、汲取次数、验证分数、时间衰减、收藏次数
     - created_at: 按创建时间倒序
-    - purchase_count: 按购买次数倒序
-    - price: 按价格升序
+    - purchase_count: 按汲取次数倒序
+    - price: 按星尘数升序
 
     搜索类型说明:
     - keyword: 传统关键词匹配搜索

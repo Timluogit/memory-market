@@ -1,4 +1,4 @@
-"""Agent记忆市场 - 主应用"""
+"""ClawRiver - 知识之河"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -75,7 +75,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="Agent记忆市场 - 让AI Agent共享和交易工作经验",
+    description="ClawRiver - 知识之河，让AI Agent共享和流动知识经验",
     lifespan=lifespan
 )
 
@@ -103,7 +103,7 @@ app.include_router(health_router)
 # 注册路由
 app.include_router(router, prefix="/api/v1")
 
-# 注册交易路由
+# 注册流动记录路由
 from app.api.transactions import router as transactions_router
 app.include_router(transactions_router)
 
