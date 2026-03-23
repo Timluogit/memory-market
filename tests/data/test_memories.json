@@ -1,0 +1,188 @@
+{
+  "memories": [
+    {
+      "memory_id": "test_mem_001",
+      "seller_agent_id": "test_agent_001",
+      "title": "Python编程最佳实践",
+      "category": "编程/Python",
+      "tags": ["Python", "最佳实践", "编程"],
+      "summary": "Python编程中的最佳实践和常见模式",
+      "content": "Python是一种高级编程语言，以其简洁和可读性而闻名。以下是一些Python编程的最佳实践：1. 使用有意义的变量名；2. 遵循PEP 8编码规范；3. 使用列表推导式；4. 避免全局变量；5. 使用异常处理。",
+      "format_type": "text",
+      "price": 100,
+      "avg_score": 4.5,
+      "verification_score": 0.9,
+      "purchase_count": 15,
+      "favorite_count": 8
+    },
+    {
+      "memory_id": "test_mem_002",
+      "seller_agent_id": "test_agent_001",
+      "title": "机器学习入门指南",
+      "category": "AI/机器学习",
+      "tags": ["机器学习", "AI", "入门"],
+      "summary": "机器学习的基本概念和常用算法",
+      "content": "机器学习是人工智能的一个子集，它使系统能够从数据中学习并改进，而无需显式编程。主要类型包括：1. 监督学习；2. 无监督学习；3. 强化学习。常用算法：线性回归、决策树、随机森林、神经网络。",
+      "format_type": "text",
+      "price": 150,
+      "avg_score": 4.8,
+      "verification_score": 0.95,
+      "purchase_count": 25,
+      "favorite_count": 12
+    },
+    {
+      "memory_id": "test_mem_003",
+      "seller_agent_id": "test_agent_002",
+      "title": "Docker容器化部署",
+      "category": "运维/Docker",
+      "tags": ["Docker", "容器化", "部署"],
+      "summary": "使用Docker进行应用容器化部署的完整指南",
+      "content": "Docker是一个开源平台，用于开发、交付和运行应用程序。Docker容器将软件及其依赖项打包到一个标准化单元中。主要优势：1. 环境一致性；2. 快速部署；3. 资源隔离；4. 易于扩展。",
+      "format_type": "text",
+      "price": 120,
+      "avg_score": 4.6,
+      "verification_score": 0.85,
+      "purchase_count": 18,
+      "favorite_count": 9
+    },
+    {
+      "memory_id": "test_mem_004",
+      "seller_agent_id": "test_agent_002",
+      "title": "数据库优化技巧",
+      "category": "数据库/优化",
+      "tags": ["数据库", "优化", "性能"],
+      "summary": "数据库查询优化和性能调优技巧",
+      "content": "数据库优化是提高应用程序性能的关键。主要优化策略：1. 创建适当的索引；2. 优化查询语句；3. 使用连接池；4. 分区表；5. 缓存策略。常用工具：EXPLAIN、慢查询日志、性能监控。",
+      "format_type": "text",
+      "price": 130,
+      "avg_score": 4.7,
+      "verification_score": 0.88,
+      "purchase_count": 20,
+      "favorite_count": 10
+    },
+    {
+      "memory_id": "test_mem_005",
+      "seller_agent_id": "test_agent_001",
+      "title": "React Hooks最佳实践",
+      "category": "前端/React",
+      "tags": ["React", "Hooks", "前端"],
+      "summary": "React Hooks的使用技巧和最佳实践",
+      "content": "React Hooks是React 16.8引入的新特性，允许在函数组件中使用状态和其他React特性。常用Hooks：1. useState - 状态管理；2. useEffect - 副作用处理；3. useContext - 上下文访问；4. useReducer - 复杂状态管理；5. useCallback - 函数缓存。",
+      "format_type": "text",
+      "price": 110,
+      "avg_score": 4.4,
+      "verification_score": 0.82,
+      "purchase_count": 12,
+      "favorite_count": 6
+    },
+    {
+      "memory_id": "test_mem_006",
+      "seller_agent_id": "test_agent_001",
+      "title": "Git版本控制高级技巧",
+      "category": "工具/Git",
+      "tags": ["Git", "版本控制", "协作"],
+      "summary": "Git高级操作和团队协作技巧",
+      "content": "Git是分布式版本控制系统。高级技巧：1. 交互式变基（git rebase -i）；2. 暂存部分更改（git add -p）；3. cherry-pick选择性合并；4. bisect二分查找问题；5. reflog恢复丢失的提交。",
+      "format_type": "text",
+      "price": 90,
+      "avg_score": 4.3,
+      "verification_score": 0.80,
+      "purchase_count": 10,
+      "favorite_count": 5
+    },
+    {
+      "memory_id": "test_mem_007",
+      "seller_agent_id": "test_agent_002",
+      "title": "微服务架构设计模式",
+      "category": "架构/微服务",
+      "tags": ["微服务", "架构", "设计模式"],
+      "summary": "微服务架构的常见设计模式和实践",
+      "content": "微服务架构将应用程序构建为一组小型、独立的服务。常见模式：1. API网关；2. 服务发现；3. 断路器；4. 事件驱动；5. CQRS；6. Saga模式。优势：独立部署、技术多样性、故障隔离。",
+      "format_type": "text",
+      "price": 140,
+      "avg_score": 4.9,
+      "verification_score": 0.92,
+      "purchase_count": 30,
+      "favorite_count": 15
+    },
+    {
+      "memory_id": "test_mem_008",
+      "seller_agent_id": "test_agent_002",
+      "title": "Kubernetes集群管理",
+      "category": "运维/Kubernetes",
+      "tags": ["Kubernetes", "K8s", "容器编排"],
+      "summary": "Kubernetes集群的部署和管理指南",
+      "content": "Kubernetes是容器编排平台，自动化容器化应用程序的部署、扩展和管理。核心概念：1. Pod - 最小部署单元；2. Service - 服务发现；3. Deployment - 声明式更新；4. ConfigMap/Secret - 配置管理；5. Ingress - 入口流量管理。",
+      "format_type": "text",
+      "price": 160,
+      "avg_score": 4.7,
+      "verification_score": 0.90,
+      "purchase_count": 22,
+      "favorite_count": 11
+    },
+    {
+      "memory_id": "test_mem_009",
+      "seller_agent_id": "test_agent_001",
+      "title": "TypeScript高级类型",
+      "category": "编程/TypeScript",
+      "tags": ["TypeScript", "类型系统", "高级"],
+      "summary": "TypeScript高级类型和类型编程技巧",
+      "content": "TypeScript的类型系统非常强大。高级特性：1. 泛型；2. 条件类型；3. 映射类型；4. 模板字面量类型；5. 类型推断；6. 类型守卫。最佳实践：避免使用any、使用unknown代替any、善用类型推断。",
+      "format_type": "text",
+      "price": 115,
+      "avg_score": 4.5,
+      "verification_score": 0.85,
+      "purchase_count": 14,
+      "favorite_count": 7
+    },
+    {
+      "memory_id": "test_mem_010",
+      "seller_agent_id": "test_agent_002",
+      "title": "Redis缓存策略",
+      "category": "数据库/Redis",
+      "tags": ["Redis", "缓存", "性能优化"],
+      "summary": "Redis缓存的使用策略和最佳实践",
+      "content": "Redis是内存数据结构存储，常用作缓存。缓存策略：1. Cache-Aside；2. Read-Through；3. Write-Through；4. Write-Behind；5. Refresh-Ahead。数据结构：String、Hash、List、Set、Sorted Set。过期策略：TTL、LRU、LFU。",
+      "format_type": "text",
+      "price": 125,
+      "avg_score": 4.6,
+      "verification_score": 0.87,
+      "purchase_count": 16,
+      "favorite_count": 8
+    }
+  ],
+  "users": [
+    {
+      "user_id": "user_001",
+      "username": "test_user_1",
+      "email": "test1@example.com",
+      "credits": 1000,
+      "reputation": 4.5
+    },
+    {
+      "user_id": "user_002",
+      "username": "test_user_2",
+      "email": "test2@example.com",
+      "credits": 500,
+      "reputation": 4.0
+    }
+  ],
+  "teams": [
+    {
+      "team_id": "team_001",
+      "name": "开发团队",
+      "description": "专注于软件开发的团队",
+      "owner_id": "user_001",
+      "members": ["user_001", "user_002"],
+      "created_at": "2026-03-23T00:00:00Z"
+    },
+    {
+      "team_id": "team_002",
+      "name": "AI研究团队",
+      "description": "专注于AI和机器学习的研究团队",
+      "owner_id": "user_002",
+      "members": ["user_002"],
+      "created_at": "2026-03-23T00:00:00Z"
+    }
+  ]
+}

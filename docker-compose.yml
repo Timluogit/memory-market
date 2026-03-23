@@ -1,74 +1,81 @@
-version: '3.8'
+version: "3.9"
+
+x-app-common: &app-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file: .env
+  environment:
+    - DATABASE_URL=sqlite+aiosqlite:///./data/memory_market.db
+    - REDIS_URL=redis://redis:6379/0
+    - CACHE_ENABLED=true
+    - SEARCH_ENGINE_MODE=in-memory
+    - UVICORN_WORKERS=2
+  volumes:
+    - app-data:/app/data
+    - app-logs:/app/logs
+  networks:
+    - memory-market-net
+  depends_on:
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
 
 services:
-  # Qdrant 向量数据库
-  qdrant:
-    image: qdrant/qdrant:latest
-    container_name: memory-market-qdrant
-    ports:
-      - "6333:6333"  # Qdrant API
-      - "6334:6334"  # Qdrant Dashboard（可选）
+  # ---- Redis Cache ----
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
     volumes:
-      - ./data/qdrant:/qdrant/storage  # Qdrant 数据持久化
-    environment:
-      - QDRANT__SERVICE__GRPC_PORT=6334
-      - QDRANT__LOG_LEVEL=INFO
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
+      - redis-data:/data
     networks:
       - memory-market-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: memory-market-api
+  # ---- App Instance 1 ----
+  app-1:
+    <<: *app-common
+    container_name: mm-app-1
+    hostname: app-1
+
+  # ---- App Instance 2 ----
+  app-2:
+    <<: *app-common
+    container_name: mm-app-2
+    hostname: app-2
+
+  # ---- Nginx Load Balancer ----
+  nginx:
+    image: nginx:1.27-alpine
     ports:
-      - "8000:8000"   # FastAPI 应用
-      - "8001:8001"   # MCP SSE 端点（备用，如需运行独立 MCP 服务）
+      - "8000:80"
+      - "8443:443"
     volumes:
-      # 数据持久化：SQLite 数据库
-      - ./data:/app/data
-    depends_on:
-      qdrant:
-        condition: service_healthy
-    environment:
-      # 应用配置
-      - APP_NAME=Agent Memory Market
-      - DEBUG=false
-      # 数据库配置（绝对路径用于容器内持久化）
-      - DATABASE_URL=sqlite+aiosqlite:////app/data/memory_market.db
-      # JWT 配置
-      - JWT_SECRET=change-this-in-production-use-env-file
-      # 积分系统配置
-      - MVP_FREE_MODE=true
-      - INITIAL_CREDITS=999999
-      - SELLER_SHARE_RATE=1.0
-      - PLATFORM_FEE_RATE=0.0
-      # MCP 配置（可选，如果需要单独运行 MCP SSE 服务）
-      - MCP_TRANSPORT=sse
-      - MCP_HOST=0.0.0.0
-      - MCP_PORT=8001
-      - MEMORY_MARKET_API_URL=http://localhost:8000/api/v1
-      # Qdrant 配置（向量搜索）
-      - QDRANT_URL=http://qdrant:6333
-      - QDRANT_API_KEY=
-      - EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
-      - EMBEDDING_DEVICE=cpu
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx-logs:/var/log/nginx
     networks:
       - memory-market-net
+    depends_on:
+      - app-1
+      - app-2
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  app-logs:
+  redis-data:
+  nginx-logs:
 
 networks:
   memory-market-net:

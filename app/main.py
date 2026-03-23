@@ -92,6 +92,10 @@ app.add_middleware(
 from app.api.audit_middleware import AuditMiddleware
 app.add_middleware(AuditMiddleware)
 
+from app.api.health import router as health_router
+app.include_router(health_router)
+
+
 # 注册路由
 app.include_router(router, prefix="/api/v1")
 

@@ -1,0 +1,138 @@
+{
+  "id": "9e9d7a24-1bb",
+  "dataset_id": "a0d045a9",
+  "dataset_name": "full_test",
+  "run_name": "full_pipeline",
+  "status": "completed",
+  "total_cases": 5,
+  "completed_cases": 5,
+  "failed_cases": 0,
+  "success_rate": 1.0,
+  "aggregated_metrics": {
+    "accuracy": 0.5,
+    "precision": 0.5,
+    "recall": 1.0,
+    "f1": 0.666667,
+    "mrr": 1.0,
+    "ndcg": 1.0
+  },
+  "case_results": [
+    {
+      "case_id": "5fca63ac",
+      "query": "test query 0",
+      "predicted_ids": [
+        "other",
+        "mem_0"
+      ],
+      "predicted_ranked": [
+        "mem_0",
+        "other"
+      ],
+      "metrics": {
+        "accuracy": 0.5,
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6666666666666666,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "latency_ms": 0.0,
+      "error": null
+    },
+    {
+      "case_id": "218ab140",
+      "query": "test query 1",
+      "predicted_ids": [
+        "mem_1",
+        "other"
+      ],
+      "predicted_ranked": [
+        "mem_1",
+        "other"
+      ],
+      "metrics": {
+        "accuracy": 0.5,
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6666666666666666,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "latency_ms": 0.0,
+      "error": null
+    },
+    {
+      "case_id": "59929059",
+      "query": "test query 2",
+      "predicted_ids": [
+        "other",
+        "mem_2"
+      ],
+      "predicted_ranked": [
+        "mem_2",
+        "other"
+      ],
+      "metrics": {
+        "accuracy": 0.5,
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6666666666666666,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "latency_ms": 0.0,
+      "error": null
+    },
+    {
+      "case_id": "2f8af01a",
+      "query": "test query 3",
+      "predicted_ids": [
+        "other",
+        "mem_3"
+      ],
+      "predicted_ranked": [
+        "mem_3",
+        "other"
+      ],
+      "metrics": {
+        "accuracy": 0.5,
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6666666666666666,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "latency_ms": 0.0,
+      "error": null
+    },
+    {
+      "case_id": "a0a4a90c",
+      "query": "test query 4",
+      "predicted_ids": [
+        "other",
+        "mem_4"
+      ],
+      "predicted_ranked": [
+        "mem_4",
+        "other"
+      ],
+      "metrics": {
+        "accuracy": 0.5,
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6666666666666666,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "latency_ms": 0.0,
+      "error": null
+    }
+  ],
+  "config": {
+    "k": 10,
+    "parallel": 2
+  },
+  "started_at": "2026-03-23T18:58:30.365512",
+  "completed_at": "2026-03-23T18:58:30.365615",
+  "duration_seconds": 0.0
+}

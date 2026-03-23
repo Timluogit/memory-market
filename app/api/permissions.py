@@ -1,7 +1,7 @@
 """权限管理API - 用户和角色权限管理"""
 from typing import List, Optional, Dict, Any
-from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_
 from pydantic import BaseModel, Field
@@ -412,7 +412,7 @@ async def get_user_permissions(
 async def grant_user_permission(
     user_id: str,
     grant_data: GrantUserPermission,
-    request,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """授予用户权限"""
@@ -469,7 +469,7 @@ async def grant_user_permission(
 async def revoke_user_permission(
     user_id: str,
     permission_code: str,
-    request,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """撤销用户权限"""

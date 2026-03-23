@@ -1,0 +1,39 @@
+{
+  "id": "a64dc9af-a25",
+  "dataset_id": "214105e0",
+  "dataset_name": "test_eval",
+  "run_name": "fail_run",
+  "status": "completed",
+  "total_cases": 2,
+  "completed_cases": 2,
+  "failed_cases": 0,
+  "success_rate": 1.0,
+  "aggregated_metrics": {},
+  "case_results": [
+    {
+      "case_id": "c1d0bb4c",
+      "query": "python programming",
+      "predicted_ids": [],
+      "predicted_ranked": [],
+      "metrics": {},
+      "latency_ms": 0.0,
+      "error": "search failed"
+    },
+    {
+      "case_id": "2b1e8e60",
+      "query": "machine learning",
+      "predicted_ids": [],
+      "predicted_ranked": [],
+      "metrics": {},
+      "latency_ms": 0.0,
+      "error": "search failed"
+    }
+  ],
+  "config": {
+    "k": 10,
+    "parallel": 1
+  },
+  "started_at": "2026-03-23T18:58:30.360143",
+  "completed_at": "2026-03-23T18:58:30.360208",
+  "duration_seconds": 0.0
+}

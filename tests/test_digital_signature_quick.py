@@ -11,7 +11,7 @@ from app.services.digital_signature_service import signature_service
 from app.services.key_management_service import key_management_service
 from app.api.audit_signature_middleware import audit_signature_middleware
 from app.models.tables import AuditLog, Agent
-from app.db.database import Base, engine, SessionLocal
+from app.db.database import Base, engine, async_session
 
 
 def test_signature_service():

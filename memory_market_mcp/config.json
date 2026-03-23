@@ -1,0 +1,277 @@
+{
+  "name": "memory-market-mcp",
+  "version": "1.0.0",
+  "description": "Agent记忆市场 MCP 服务器 — 34 个标准化工具",
+  "protocol": "MCP/2025-03-26",
+  "transport": {
+    "default": "stdio",
+    "supported": ["stdio", "sse"],
+    "sse": {
+      "host": "0.0.0.0",
+      "port": 8001
+    }
+  },
+  "api": {
+    "base_url": "${MEMORY_MARKET_API_URL:-http://localhost:8000/api/v1}",
+    "api_key_env": "MEMORY_MARKET_API_KEY",
+    "timeout_seconds": 30
+  },
+  "auth": {
+    "type": "api_key",
+    "header": "X-API-Key",
+    "env_var": "MEMORY_MARKET_API_KEY"
+  },
+  "tools": {
+    "memory": {
+      "count": 10,
+      "items": [
+        {
+          "name": "search_memories",
+          "description": "搜索记忆市场中的记忆",
+          "params": ["query", "category?", "platform?", "format_type?", "max_price?", "limit=10"]
+        },
+        {
+          "name": "get_memory",
+          "description": "获取记忆详情",
+          "params": ["memory_id"]
+        },
+        {
+          "name": "upload_memory",
+          "description": "上传记忆到市场",
+          "params": ["title", "category", "summary", "content", "price", "tags?", "format_type?"]
+        },
+        {
+          "name": "purchase_memory",
+          "description": "购买记忆",
+          "params": ["memory_id"]
+        },
+        {
+          "name": "rate_memory",
+          "description": "评价记忆（1-5分）",
+          "params": ["memory_id", "score", "comment?", "effectiveness?"]
+        },
+        {
+          "name": "verify_memory",
+          "description": "验证记忆质量（+5积分奖励）",
+          "params": ["memory_id", "score", "comment?"]
+        },
+        {
+          "name": "get_my_memories",
+          "description": "获取我上传的记忆列表",
+          "params": ["page=1", "page_size=20"]
+        },
+        {
+          "name": "update_memory",
+          "description": "更新已有记忆",
+          "params": ["memory_id", "title?", "summary?", "content?", "tags?", "price?"]
+        },
+        {
+          "name": "get_balance",
+          "description": "查看账户余额和交易统计",
+          "params": []
+        },
+        {
+          "name": "get_market_trends",
+          "description": "获取市场趋势",
+          "params": ["platform?"]
+        }
+      ]
+    },
+    "team_management": {
+      "count": 6,
+      "items": [
+        {
+          "name": "create_team",
+          "description": "创建团队",
+          "params": ["owner_agent_id", "name", "description?"]
+        },
+        {
+          "name": "get_team",
+          "description": "获取团队详情",
+          "params": ["team_id"]
+        },
+        {
+          "name": "update_team",
+          "description": "更新团队信息",
+          "params": ["team_id", "owner_agent_id", "name?", "description?"]
+        },
+        {
+          "name": "delete_team",
+          "description": "删除团队（软删除）",
+          "params": ["team_id", "owner_agent_id"]
+        },
+        {
+          "name": "list_teams",
+          "description": "列出团队",
+          "params": ["owner_agent_id?"]
+        },
+        {
+          "name": "get_team_stats",
+          "description": "获取团队统计",
+          "params": ["team_id"]
+        }
+      ]
+    },
+    "team_members": {
+      "count": 5,
+      "items": [
+        {
+          "name": "invite_member",
+          "description": "生成团队邀请码",
+          "params": ["team_id", "expires_days=7"]
+        },
+        {
+          "name": "join_team",
+          "description": "通过邀请码加入团队",
+          "params": ["agent_id", "invite_code"]
+        },
+        {
+          "name": "list_members",
+          "description": "列出团队成员",
+          "params": ["team_id"]
+        },
+        {
+          "name": "update_member_role",
+          "description": "更新成员角色",
+          "params": ["team_id", "member_id", "new_role"]
+        },
+        {
+          "name": "remove_member",
+          "description": "移除团队成员",
+          "params": ["team_id", "member_id"]
+        }
+      ]
+    },
+    "team_memories": {
+      "count": 6,
+      "items": [
+        {
+          "name": "create_team_memory",
+          "description": "创建团队记忆",
+          "params": ["team_id", "creator_agent_id", "title", "category", "summary", "content", "tags?", "format_type?", "price?", "team_access_level?"]
+        },
+        {
+          "name": "get_team_memory",
+          "description": "获取团队记忆详情",
+          "params": ["team_id", "memory_id", "request_agent_id"]
+        },
+        {
+          "name": "search_team_memories",
+          "description": "搜索团队记忆",
+          "params": ["team_id", "query?", "category?", "page?", "page_size?"]
+        },
+        {
+          "name": "list_team_memories",
+          "description": "列出团队记忆",
+          "params": ["team_id", "page?", "page_size?", "category?"]
+        },
+        {
+          "name": "update_team_memory",
+          "description": "更新团队记忆",
+          "params": ["team_id", "memory_id", "request_agent_id", "updates"]
+        },
+        {
+          "name": "delete_team_memory",
+          "description": "删除团队记忆",
+          "params": ["team_id", "memory_id", "request_agent_id"]
+        }
+      ]
+    },
+    "team_credits": {
+      "count": 4,
+      "items": [
+        {
+          "name": "get_team_credits",
+          "description": "获取团队积分余额",
+          "params": ["team_id"]
+        },
+        {
+          "name": "add_team_credits",
+          "description": "为团队添加积分",
+          "params": ["team_id", "agent_id", "amount"]
+        },
+        {
+          "name": "transfer_credits",
+          "description": "团队成员间转移积分",
+          "params": ["team_id", "from_agent_id", "to_agent_id", "amount"]
+        },
+        {
+          "name": "get_credit_transactions",
+          "description": "获取积分交易记录",
+          "params": ["team_id", "page?", "page_size?"]
+        }
+      ]
+    },
+    "team_activity": {
+      "count": 2,
+      "items": [
+        {
+          "name": "get_team_activities",
+          "description": "获取团队活动日志",
+          "params": ["team_id", "activity_type?", "page?", "page_size?"]
+        },
+        {
+          "name": "log_activity",
+          "description": "记录团队活动",
+          "params": ["team_id", "agent_id", "activity_type", "description", "metadata?"]
+        }
+      ]
+    },
+    "team_insights": {
+      "count": 1,
+      "items": [
+        {
+          "name": "get_team_insights",
+          "description": "获取团队洞察",
+          "params": ["team_id"]
+        }
+      ]
+    }
+  },
+  "total_tools": 34,
+  "client_configs": {
+    "claude_desktop": {
+      "file": "~/Library/Application Support/Claude/claude_desktop_config.json",
+      "config": {
+        "mcpServers": {
+          "memory-market": {
+            "command": "python",
+            "args": ["-m", "memory_market_mcp.server"],
+            "cwd": "/path/to/memory-market",
+            "env": {
+              "MEMORY_MARKET_API_KEY": "your-api-key",
+              "MEMORY_MARKET_API_URL": "http://localhost:8000/api/v1"
+            }
+          }
+        }
+      }
+    },
+    "cursor": {
+      "file": ".cursor/mcp.json",
+      "config": {
+        "mcpServers": {
+          "memory-market": {
+            "command": "python",
+            "args": ["-m", "memory_market_mcp.server"],
+            "cwd": "/path/to/memory-market",
+            "env": {
+              "MEMORY_MARKET_API_KEY": "your-api-key"
+            }
+          }
+        }
+      }
+    },
+    "sse_remote": {
+      "config": {
+        "mcpServers": {
+          "memory-market": {
+            "url": "http://localhost:8001/sse",
+            "headers": {
+              "X-API-Key": "your-api-key"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "id": "aad28830-a25",
+  "dataset_id": "21630785",
+  "dataset_name": "test_eval",
+  "run_name": "test",
+  "status": "completed",
+  "total_cases": 2,
+  "completed_cases": 2,
+  "failed_cases": 0,
+  "success_rate": 1.0,
+  "aggregated_metrics": {
+    "accuracy": 0.583333,
+    "precision": 0.583333,
+    "recall": 1.0,
+    "f1": 0.733333,
+    "mrr": 1.0,
+    "ndcg": 1.0
+  },
+  "case_results": [
+    {
+      "case_id": "1b9560ff",
+      "query": "python programming",
+      "predicted_ids": [
+        "mem2",
+        "other",
+        "mem1"
+      ],
+      "predicted_ranked": [
+        "mem1",
+        "mem2",
+        "other"
+      ],
+      "metrics": {
+        "accuracy": 0.6666666666666666,
+        "precision": 0.6666666666666666,
+        "recall": 1.0,
+        "f1": 0.8,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "latency_ms": 0.0,
+      "error": null
+    },
+    {
+      "case_id": "ab570ee7",
+      "query": "machine learning",
+      "predicted_ids": [
+        "mem3",
+        "other"
+      ],
+      "predicted_ranked": [
+        "mem3",
+        "other"
+      ],
+      "metrics": {
+        "accuracy": 0.5,
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6666666666666666,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "latency_ms": 0.0,
+      "error": null
+    }
+  ],
+  "config": {
+    "k": 10,
+    "parallel": 2
+  },
+  "started_at": "2026-03-23T16:44:06.181947",
+  "completed_at": "2026-03-23T16:44:06.182068",
+  "duration_seconds": 0.0
+}

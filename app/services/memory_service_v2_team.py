@@ -1,5 +1,5 @@
 """团队记忆服务层"""
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update, and_, or_, desc
 from sqlalchemy.orm import selectinload
@@ -176,7 +176,7 @@ async def create_team_memory(
         creator_agent_id,
         "memory_created",
         f"创建了记忆: {memory.title}",
-        memory_id=memory.memory_id
+        related_id=memory.memory_id
     )
 
     # 构建响应
@@ -446,17 +446,16 @@ async def update_team_memory(
         request_agent_id,
         "memory_updated",
         f"更新了记忆: {memory.title}",
-        memory_id=memory.memory_id
+        related_id=memory.memory_id
     )
 
     # 构建响应
-    result = await db.execute(
-        select(Agent, Team)
-        .outerjoin(Team, Team.team_id == team_id)
+    creator_result = await db.execute(
+        select(Agent).where(Agent.agent_id == memory.created_by_agent_id)
     )
-    creator = result.scalar_one_or_none()
-    team = await db.execute(select(Team).where(Team.team_id == team_id))
-    team = team.scalar_one_or_none()
+    creator = creator_result.scalar_one_or_none()
+    team_result = await db.execute(select(Team).where(Team.team_id == team_id))
+    team = team_result.scalar_one_or_none()
 
     return TeamMemoryResponse(
         memory_id=memory.memory_id,
@@ -535,7 +534,7 @@ async def delete_team_memory(
         request_agent_id,
         "memory_deleted",
         f"删除了记忆: {memory.title}",
-        memory_id=memory.memory_id
+        related_id=memory.memory_id
     )
 
 

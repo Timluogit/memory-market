@@ -1,196 +1,63 @@
-# Docker Compose 监控服务配置
-# Memory Market Monitoring Stack
-
-version: '3.8'
+# ============================================================
+# Monitoring Stack — Prometheus + Grafana + Node Exporter
+# Usage: docker compose -f docker-compose.monitoring.yml up -d
+# ============================================================
+version: "3.9"
 
 services:
-  # Prometheus - 指标收集和存储
   prometheus:
-    image: prom/prometheus:latest
-    container_name: memory-market-prometheus
+    image: prom/prometheus:v2.53.0
+    container_name: mm-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
     ports:
       - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./alerts:/etc/prometheus/alerts:ro
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.enable-lifecycle'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
     networks:
-      - monitoring
+      - memory-market-net
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
-  # Alertmanager - 告警管理
-  alertmanager:
-    image: prom/alertmanager:latest
-    container_name: memory-market-alertmanager
-    ports:
-      - "9093:9093"
-    volumes:
-      - ./alerts/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - alertmanager-data:/alertmanager
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-      - '--web.external-url=http://localhost:9093'
-    networks:
-      - monitoring
-    restart: unless-stopped
-    depends_on:
-      - prometheus
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Grafana - 可视化 Dashboard
   grafana:
-    image: grafana/grafana:latest
-    container_name: memory-market-grafana
-    ports:
-      - "3000:3000"
+    image: grafana/grafana:11.1.0
+    container_name: mm-grafana
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
-      - GF_SERVER_ROOT_URL=http://localhost:3000
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
-      - GF_LOG_LEVEL=info
-      - GF_LOG_MODE=console
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
     networks:
-      - monitoring
-    restart: unless-stopped
+      - memory-market-net
     depends_on:
       - prometheus
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Jaeger - 分布式追踪
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: memory-market-jaeger
-    ports:
-      - "5775:5775/udp"   # Zipkin Thrift compact
-      - "6831:6831/udp"   # Jaeger Thrift compact
-      - "6832:6832/udp"   # Jaeger Thrift binary
-      - "5778:5778"       # Jaeger Thrift HTTP
-      - "16686:16686"     # Jaeger UI
-      - "14268:14268"     # Jaeger HTTP Thrift
-      - "14250:14250"     # Jaeger gRPC
-      - "9411:9411"       # Zipkin HTTP
-      - "4317:4317"       # OTLP gRPC
-      - "4318:4318"       # OTLP HTTP
-    environment:
-      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
-      - COLLECTOR_OTLP_ENABLED=true
-    networks:
-      - monitoring
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:16686/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
-  # Loki - 日志聚合（可选）
-  loki:
-    image: grafana/loki:latest
-    container_name: memory-market-loki
-    ports:
-      - "3100:3100"
-    volumes:
-      - loki-data:/loki
-      - ./loki/loki.yml:/etc/loki/local-config.yaml:ro
-    command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - monitoring
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Promtail - 日志采集代理
-  promtail:
-    image: grafana/promtail:latest
-    container_name: memory-market-promtail
-    volumes:
-      - ./loki/promtail.yml:/etc/promtail/config.yml:ro
-      - /var/log:/var/log:ro  # 采集主机日志
-      - ./logs:/app/logs:ro    # 采集应用日志
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - monitoring
-    restart: unless-stopped
-    depends_on:
-      - loki
-
-  # Node Exporter - 系统指标导出
   node-exporter:
-    image: prom/node-exporter:latest
-    container_name: memory-market-node-exporter
-    ports:
-      - "9100:9100"
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    image: prom/node-exporter:v1.8.1
+    container_name: mm-node-exporter
+    pid: host
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    networks:
-      - monitoring
-    restart: unless-stopped
-
-  # cAdvisor - 容器指标导出
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: memory-market-cadvisor
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
     ports:
-      - "8080:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    privileged: true
+      - "9100:9100"
     networks:
-      - monitoring
+      - memory-market-net
     restart: unless-stopped
-    depends_on:
-      - prometheus
 
 volumes:
   prometheus-data:
-    driver: local
-  alertmanager-data:
-    driver: local
   grafana-data:
-    driver: local
-  loki-data:
-    driver: local
 
 networks:
-  monitoring:
-    driver: bridge
+  memory-market-net:
+    external: true
+    name: memory-market_memory-market-net

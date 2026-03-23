@@ -1,0 +1,20 @@
+{
+  "id": "82fa9a13-57b",
+  "dataset_id": "f7ccf0ec",
+  "dataset_name": "test_dataset",
+  "run_name": "run_20260323_195549",
+  "status": "completed",
+  "total_cases": 0,
+  "completed_cases": 0,
+  "failed_cases": 0,
+  "success_rate": 0.0,
+  "aggregated_metrics": {},
+  "case_results": [],
+  "config": {
+    "k": 10,
+    "parallel": 4
+  },
+  "started_at": "2026-03-23T19:55:49.951037",
+  "completed_at": "2026-03-23T19:55:49.951102",
+  "duration_seconds": 0.0
+}

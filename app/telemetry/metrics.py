@@ -10,7 +10,8 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.exporter.prometheus import PrometheusMetricReader
 from prometheus_client import start_http_server
-from typing import Counter, Histogram, Gauge, ObservableGauge
+from typing import Optional, Any
+from opentelemetry.metrics import Counter, Histogram, ObservableGauge
 
 from ..core.logging import get_logger
 
@@ -19,9 +20,9 @@ logger = get_logger(__name__)
 # 全局指标实例
 http_requests_total: Counter = None
 http_request_duration: Histogram = None
-active_users: Gauge = None
-total_memories: Gauge = None
-total_transactions: Gauge = None
+active_users: Any = None
+total_memories: Any = None
+total_transactions: Any = None
 search_latency: Histogram = None
 qdrant_query_duration: Histogram = None
 db_query_duration: Histogram = None

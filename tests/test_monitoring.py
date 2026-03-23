@@ -246,7 +246,7 @@ class TestMonitoringIntegration:
         assert avg_time < 0.001, f"Metric recording too slow: {avg_time}s per operation"
 
 
-@pytest.mark.skipif(not pytest.config.getoption("--run-slow"), reason="需要启动实际服务")
+@pytest.mark.skipif(True, reason="需要启动实际服务 (--run-slow)")
 class TestMonitoringWithServices:
     """需要实际服务的测试（使用 --run-slow 标志运行）"""
 

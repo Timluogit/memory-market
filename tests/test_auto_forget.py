@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.auto_forget_service import get_auto_forget_service, AutoForgetService
 from app.services.forget_scheduler import get_forget_scheduler, ForgetScheduler
 from app.models.tables import Memory, ProfileFact, UserProfile, ProfileChange
-from app.db.database import get_async_session
+from app.db.database import async_session
 
 
 @pytest.mark.asyncio
@@ -434,7 +434,7 @@ async def test_filter_expired_memories():
 @pytest.fixture
 async def db_session():
     """创建数据库会话夹具"""
-    async for session in get_async_session():
+    async with async_session() as session:
         yield session
         # 清理测试数据
         # 注意：实际使用时应该使用事务回滚
