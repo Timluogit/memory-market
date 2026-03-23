@@ -70,6 +70,11 @@ class Memory(Base):
     # 状态
     is_active = Column(Boolean, default=True)
     expires_at = Column(DateTime, nullable=True)
+
+    # 自动遗忘字段
+    expiry_time = Column(DateTime, nullable=True, index=True)  # 记忆过期时间（自动遗忘）
+    ttl_days = Column(Integer, nullable=True)  # 生存时间（天），用于计算expiry_time
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -80,6 +85,8 @@ class Memory(Base):
     # 索引
     __table_args__ = (
         Index('idx_memories_team_access', 'team_id', 'team_access_level'),
+        Index('idx_memories_expiry', 'expiry_time', 'is_active'),
+        Index('idx_memories_ttl', 'ttl_days'),
     )
 
 class Purchase(Base):
@@ -1003,6 +1010,11 @@ class UserProfile(Base):
     # 统计
     confidence_score = Column(Float, default=0.5)  # 画像可信度（基于自动提取质量）
     completeness_score = Column(Float, default=0.0)  # 画像完整度（字段填充率）
+
+    # 自动遗忘配置
+    default_ttl_days = Column(Integer, default=30)  # 默认TTL（天），用于新事实
+    ttl_config = Column(JSON, nullable=True)  # TTL配置 {"personal": 365, "preference": 90, "habit": 180, "skill": 365}
+
     last_updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     created_at = Column(DateTime, server_default=func.now())
 

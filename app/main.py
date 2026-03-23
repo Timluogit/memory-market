@@ -34,10 +34,34 @@ async def lifespan(app: FastAPI):
             print(f"⚠️  缓存系统初始化失败: {e}")
             print(f"💡 请确保Redis已启动: {settings.REDIS_URL}")
 
+    # 初始化自动遗忘系统
+    if settings.AUTO_FORGET_ENABLED:
+        from app.services.forget_scheduler import get_forget_scheduler
+
+        try:
+            forget_scheduler = get_forget_scheduler()
+            await forget_scheduler.start()
+            print(f"✅ 自动遗忘系统启动成功 (间隔: {settings.AUTO_FORGET_SCHEDULE_MINUTES}分钟)")
+
+        except Exception as e:
+            print(f"⚠️  自动遗忘系统启动失败: {e}")
+
     print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} 启动完成")
     yield
     # 关闭时清理
     print("👋 应用关闭")
+
+    # 停止遗忘调度器
+    if settings.AUTO_FORGET_ENABLED:
+        from app.services.forget_scheduler import get_forget_scheduler
+
+        try:
+            forget_scheduler = get_forget_scheduler()
+            await forget_scheduler.stop()
+            print("✅ 自动遗忘系统已停止")
+
+        except Exception as e:
+            print(f"⚠️  停止自动遗忘系统时出错: {e}")
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -75,6 +99,10 @@ from app.api.team_credits import router as team_credits_router
 app.include_router(teams_router, prefix="/api")
 app.include_router(team_members_router, prefix="/api")
 app.include_router(team_credits_router, prefix="/api")
+
+# 注册自动遗忘路由
+from app.api.auto_forget import router as auto_forget_router
+app.include_router(auto_forget_router, prefix="/api")
 
 # 全局异常处理器
 from fastapi.requests import Request

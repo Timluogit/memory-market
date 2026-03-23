@@ -75,4 +75,18 @@ class Settings:
     PROFILE_EXTRACTION_MODEL: str = os.getenv("PROFILE_EXTRACTION_MODEL", "gpt-4o-mini")  # 画像提取模型
     PROFILE_MAX_FIELDS: int = int(os.getenv("PROFILE_MAX_FIELDS", "30"))  # 最大字段数
 
+    # 自动遗忘机制
+    AUTO_FORGET_ENABLED: bool = os.getenv("AUTO_FORGET_ENABLED", "true").lower() == "true"
+    AUTO_FORGET_SCHEDULE_MINUTES: int = int(os.getenv("AUTO_FORGET_SCHEDULE_MINUTES", "60"))  # 检查间隔（分钟）
+    AUTO_FORGET_BATCH_SIZE: int = int(os.getenv("AUTO_FORGET_BATCH_SIZE", "1000"))  # 批量清理大小
+    AUTO_FORGET_DEFAULT_TTL_DAYS: int = int(os.getenv("AUTO_FORGET_DEFAULT_TTL_DAYS", "30"))  # 默认TTL（天）
+    AUTO_FORGET_ARCHIVE_BEFORE_DELETE: bool = os.getenv("AUTO_FORGET_ARCHIVE_BEFORE_DELETE", "false").lower() == "true"  # 删除前归档
+
+    # TTL配置（按事实类型）
+    TTL_PERSONAL: int = int(os.getenv("TTL_PERSONAL", "365"))  # 个人信息TTL（天）
+    TTL_PREFERENCE: int = int(os.getenv("TTL_PREFERENCE", "90"))  # 偏好TTL（天）
+    TTL_HABIT: int = int(os.getenv("TTL_HABIT", "180"))  # 习惯TTL（天）
+    TTL_SKILL: int = int(os.getenv("TTL_SKILL", "365"))  # 技能TTL（天）
+    TTL_INTEREST: int = int(os.getenv("TTL_INTEREST", "180"))  # 兴趣TTL（天）
+
 settings = Settings()

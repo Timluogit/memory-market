@@ -68,7 +68,8 @@ class HybridSearchEngine:
         enable_rerank: bool = True,
         page: int = 1,
         page_size: int = 10,
-        sort_by: str = "relevance"
+        sort_by: str = "relevance",
+        filter_expired: bool = True
     ):
         """混合搜索
 
@@ -85,6 +86,7 @@ class HybridSearchEngine:
             page: 页码
             page_size: 每页数量
             sort_by: 排序方式
+            filter_expired: 是否过滤过期记忆
 
         Returns:
             记忆列表
@@ -92,12 +94,20 @@ class HybridSearchEngine:
         if not query.strip():
             # 无查询时返回所有结果
             return await self._execute_base_search(
-                base_stmt, db, page, page_size, sort_by
+                base_stmt, db, page, page_size, sort_by, filter_expired
             )
 
         # 获取所有候选记忆（用于关键词搜索和映射）
         all_result = await db.execute(base_stmt)
         all_memories = all_result.all()
+
+        if not all_memories:
+            from app.models.schemas import MemoryList
+            return MemoryList(items=[], total=0, page=page, page_size=page_size)
+
+        # 过滤过期记忆
+        if filter_expired:
+            all_memories = self._filter_expired_memories(all_memories)
 
         if not all_memories:
             from app.models.schemas import MemoryList
@@ -449,7 +459,8 @@ class HybridSearchEngine:
         enable_rerank: bool = True,
         page: int = 1,
         page_size: int = 10,
-        sort_by: str = "relevance"
+        sort_by: str = "relevance",
+        filter_expired: bool = True
     ):
         """个性化搜索：基于用户画像优化搜索结果
 
@@ -467,6 +478,7 @@ class HybridSearchEngine:
             page: 页码
             page_size: 每页数量
             sort_by: 排序方式
+            filter_expired: 是否过滤过期记忆
 
         Returns:
             记忆列表
@@ -475,13 +487,13 @@ class HybridSearchEngine:
             # 如果画像系统未启用，回退到普通搜索
             return await self.search(
                 db, query, base_stmt, search_type, top_k, min_score,
-                semantic_weight, keyword_weight, enable_rerank, page, page_size, sort_by
+                semantic_weight, keyword_weight, enable_rerank, page, page_size, sort_by, filter_expired
             )
 
         # 1. 执行基础搜索
         results = await self.search(
             db, query, base_stmt, search_type, top_k, min_score,
-            semantic_weight, keyword_weight, enable_rerank, page, page_size, sort_by
+            semantic_weight, keyword_weight, enable_rerank, page, page_size, sort_by, filter_expired
         )
 
         # 2. 获取用户画像
@@ -498,6 +510,62 @@ class HybridSearchEngine:
         )
 
         return personalized_results
+
+    def _filter_expired_memories(self, memories):
+        """过滤过期记忆
+
+        Args:
+            memories: 记忆列表
+
+        Returns:
+            过滤后的记忆列表
+        """
+        from datetime import datetime
+
+        now = datetime.now()
+        filtered = []
+
+        for row in memories:
+            memory = row.Memory
+
+            # 检查是否过期
+            if memory.is_active:
+                # 没有过期时间或过期时间在未来
+                if memory.expiry_time is None or memory.expiry_time > now:
+                    filtered.append(row)
+
+        return filtered
+
+    async def _execute_base_search(
+        self,
+        base_stmt,
+        db: AsyncSession,
+        page: int,
+        page_size: int,
+        sort_by: str,
+        filter_expired: bool = True
+    ):
+        """执行基础搜索（无查询时）"""
+        from app.services.memory_service import _execute_search
+
+        # 如果需要过滤过期记忆，添加条件
+        if filter_expired:
+            from datetime import datetime
+            now = datetime.now()
+
+            # 添加过滤条件：仅返回未过期的记忆
+            from sqlalchemy import and_
+            base_stmt = base_stmt.where(
+                and_(
+                    Memory.is_active == True,
+                    or_(
+                        Memory.expiry_time.is_(None),
+                        Memory.expiry_time > now
+                    )
+                )
+            )
+
+        return await _execute_search(base_stmt, db, page, page_size, sort_by)
 
     async def _apply_profile_personalization(
         self,
