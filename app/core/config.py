@@ -89,4 +89,26 @@ class Settings:
     TTL_SKILL: int = int(os.getenv("TTL_SKILL", "365"))  # 技能TTL（天）
     TTL_INTEREST: int = int(os.getenv("TTL_INTEREST", "180"))  # 兴趣TTL（天）
 
+    # ===== 内存模式（纯内存运行架构） =====
+    # 搜索引擎模式: "qdrant" | "in-memory" | "auto"
+    #   qdrant: 使用 Qdrant 向量数据库（需要外部服务）
+    #   in-memory: 纯内存搜索（无需外部数据库）
+    #   auto: 优先 in-memory，Qdrant 可用时自动降级到 Qdrant
+    SEARCH_ENGINE_MODE: str = os.getenv("SEARCH_ENGINE_MODE", "in-memory")
+
+    # 内存索引
+    MEMORY_INDEX_DIR: str = os.getenv("MEMORY_INDEX_DIR", "./data/memory_index")
+    MEMORY_INDEX_MAX_VECTORS: int = int(os.getenv("MEMORY_INDEX_MAX_VECTORS", "100000"))
+    MEMORY_INDEX_AUTO_PERSIST: bool = os.getenv("MEMORY_INDEX_AUTO_PERSIST", "true").lower() == "true"
+    MEMORY_INDEX_PERSIST_INTERVAL: int = int(os.getenv("MEMORY_INDEX_PERSIST_INTERVAL", "300"))  # 秒
+
+    # 内存向量搜索
+    IN_MEMORY_SIMILARITY_METRIC: str = os.getenv("IN_MEMORY_SIMILARITY_METRIC", "cosine")  # cosine | euclidean
+    IN_MEMORY_BATCH_SIZE: int = int(os.getenv("IN_MEMORY_BATCH_SIZE", "1000"))
+
+    # 内存混合搜索
+    IN_MEMORY_SEMANTIC_WEIGHT: float = float(os.getenv("IN_MEMORY_SEMANTIC_WEIGHT", "0.6"))
+    IN_MEMORY_KEYWORD_WEIGHT: float = float(os.getenv("IN_MEMORY_KEYWORD_WEIGHT", "0.4"))
+    IN_MEMORY_RERANK_ENABLED: bool = os.getenv("IN_MEMORY_RERANK_ENABLED", "true").lower() == "true"
+
 settings = Settings()
