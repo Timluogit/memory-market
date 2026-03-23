@@ -17,7 +17,7 @@ class Settings:
     JWT_EXPIRE_HOURS: int = 24
     
     # 积分系统
-    MVP_FREE_MODE: bool = True  # MVP阶段：完全免费
+    MVP_FREE_MODE: bool = False  # 正式模式：积分交易
     INITIAL_CREDITS: int = 999999  # MVP阶段：无限积分
     SELLER_SHARE_RATE: float = 1.0  # 卖家获得100%（平台不收费）
     PLATFORM_FEE_RATE: float = 0.0  # 平台佣金0%
