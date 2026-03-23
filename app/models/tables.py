@@ -1148,3 +1148,152 @@ class ProfileChange(Base):
         Index('idx_profile_changes_agent', 'agent_id', 'created_at'),
         Index('idx_profile_changes_type_field', 'change_type', 'field_name'),
     )
+
+
+# ============ AWS IAM-like 权限策略系统 ============
+
+class PermissionPolicy(Base):
+    """
+    权限策略表 - AWS IAM Policy 风格
+
+    支持 AWS IAM 风格的 JSON 策略文档：
+    {
+        "Version": "2024-01-01",
+        "Statement": [
+            {
+                "Sid": "AllowMemoryRead",
+                "Effect": "Allow",
+                "Action": ["memory:get", "memory:list"],
+                "Resource": ["memory:*"],
+                "Condition": {
+                    "StringEquals": {"category": "技术"},
+                    "IpAddress": {"source_ip": "10.0.0.0/8"}
+                }
+            }
+        ]
+    }
+    """
+    __tablename__ = "permission_policies"
+
+    policy_id = Column(String(50), primary_key=True, default=lambda: gen_id("pol"))
+
+    # 策略基本信息
+    name = Column(String(200), nullable=False, index=True)  # 策略名称
+    description = Column(Text, nullable=True)  # 策略描述
+    policy_type = Column(String(20), nullable=False, default="custom", index=True)  # managed/custom/inline
+
+    # 策略文档（AWS IAM 风格 JSON）
+    policy_document = Column(JSON, nullable=False)  # 完整的策略文档
+
+    # 策略状态
+    is_active = Column(Boolean, default=True, index=True)
+    is_system = Column(Boolean, default=False)  # 系统内置策略（不可删除）
+
+    # 版本管理
+    default_version_id = Column(String(50), nullable=True)  # 默认版本ID
+    version_count = Column(Integer, default=1)  # 版本数量
+
+    # 统计信息
+    attachment_count = Column(Integer, default=0)  # 附加次数
+
+    # 元数据
+    created_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # 关系
+    created_by = relationship("Agent", foreign_keys=[created_by_agent_id])
+    versions = relationship("PolicyVersion", back_populates="policy", cascade="all, delete-orphan")
+    attachments = relationship("PolicyAttachment", back_populates="policy", cascade="all, delete-orphan")
+
+    # 索引
+    __table_args__ = (
+        Index('idx_policies_type_active', 'policy_type', 'is_active'),
+        Index('idx_policies_created_by', 'created_by_agent_id'),
+    )
+
+
+class PolicyVersion(Base):
+    """
+    策略版本表 - 支持策略版本管理
+
+    类似 AWS IAM PolicyVersion，最多保留 N 个版本
+    """
+    __tablename__ = "policy_versions"
+
+    version_id = Column(String(50), primary_key=True, default=lambda: gen_id("pver"))
+
+    # 关联策略
+    policy_id = Column(String(50), ForeignKey("permission_policies.policy_id"), nullable=False, index=True)
+
+    # 版本信息
+    version_number = Column(Integer, nullable=False)  # 版本号（1, 2, 3...）
+    is_default = Column(Boolean, default=False)  # 是否为默认版本
+
+    # 策略文档快照
+    policy_document = Column(JSON, nullable=False)  # 该版本的策略文档
+
+    # 变更说明
+    changelog = Column(Text, nullable=True)  # 变更说明
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now())
+
+    # 关系
+    policy = relationship("PermissionPolicy", back_populates="versions")
+
+    # 索引和约束
+    __table_args__ = (
+        UniqueConstraint('policy_id', 'version_number', name='uq_policy_version'),
+        Index('idx_policy_versions_policy', 'policy_id', 'version_number'),
+        Index('idx_policy_versions_default', 'policy_id', 'is_default'),
+    )
+
+
+class PolicyAttachment(Base):
+    """
+    策略附加表 - 将策略附加到用户或角色
+
+    类似 AWS IAM PolicyAttachment，支持 managed 和 inline 策略
+    """
+    __tablename__ = "policy_attachments"
+
+    attachment_id = Column(String(50), primary_key=True, default=lambda: gen_id("patt"))
+
+    # 关联策略
+    policy_id = Column(String(50), ForeignKey("permission_policies.policy_id"), nullable=False, index=True)
+
+    # 附加目标（二选一）
+    agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True, index=True)  # 附加到用户
+    role_id = Column(String(50), ForeignKey("roles.role_id"), nullable=True, index=True)  # 附加到角色
+
+    # 附加类型
+    attachment_type = Column(String(20), nullable=False, default="managed")  # managed/inline
+
+    # 资源范围限制（可选）
+    resource_scope = Column(JSON, nullable=True)  # {"resource_types": ["memory", "team"], "resource_ids": ["mem_xxx"]}
+
+    # 条件覆盖（可选，在策略条件基础上额外限制）
+    condition_overrides = Column(JSON, nullable=True)  # 覆盖或附加条件
+
+    # 有效期
+    expires_at = Column(DateTime, nullable=True)
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now())
+    created_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True)
+
+    # 关系
+    policy = relationship("PermissionPolicy", back_populates="attachments")
+    agent = relationship("Agent", foreign_keys=[agent_id])
+    role = relationship("Role", foreign_keys=[role_id])
+    created_by = relationship("Agent", foreign_keys=[created_by_agent_id])
+
+    # 索引和约束
+    __table_args__ = (
+        Index('idx_policy_attachments_policy', 'policy_id'),
+        Index('idx_policy_attachments_agent', 'agent_id'),
+        Index('idx_policy_attachments_role', 'role_id'),
+        Index('idx_policy_attachments_agent_active', 'agent_id', 'expires_at'),
+        Index('idx_policy_attachments_role_active', 'role_id', 'expires_at'),
+    )

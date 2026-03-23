@@ -27,6 +27,7 @@ router = APIRouter()
 # 导入团队相关路由
 from app.api import teams, team_members, team_credits, memories, team_stats, team_activity
 from app.api import audit_logs, search_analytics, ab_tests, cache_stats, anomaly_detection
+from app.api import permissions, resource_permissions, advanced_permissions
 router.include_router(teams.router)
 router.include_router(team_members.router)
 router.include_router(team_credits.router)
@@ -38,6 +39,9 @@ router.include_router(search_analytics.router)
 router.include_router(ab_tests.router)
 router.include_router(cache_stats.router)
 router.include_router(anomaly_detection.router)
+router.include_router(permissions.router)
+router.include_router(resource_permissions.router)
+router.include_router(advanced_permissions.router)
 
 # ============ Agent相关 ============
 
