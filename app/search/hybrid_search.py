@@ -288,7 +288,7 @@ class HybridSearchEngine:
 
         # 4. Rerank（可选）
         if enable_rerank:
-            hybrid_scores = self._rerank(query, hybrid_scores, memory_map)
+            hybrid_scores = await self._rerank(query, hybrid_scores, memory_map)
 
         # 5. 排序
         sorted_results = sorted(
@@ -305,7 +305,7 @@ class HybridSearchEngine:
 
         return final_results
 
-    def _rerank(
+    async def _rerank(
         self,
         query: str,
         scores: Dict[str, float],
@@ -313,11 +313,9 @@ class HybridSearchEngine:
     ) -> Dict[str, float]:
         """Rerank 搜索结果
 
-        基于多维特征重新排序：
-        - 文本相似度（query与标题/摘要的匹配度）
-        - 信号质量（评分、购买次数、验证分数）
-        - 时效性（新内容优先）
-        - 价格合理性
+        优先使用 Cross-Encoder 进行精确重排，失败时回退到规则重排：
+        - Cross-Encoder: 深度语义理解，query-content 精确匹配
+        - 规则重排: 文本相似度、信号质量、时效性、价格合理性
 
         Args:
             query: 搜索查询
@@ -327,6 +325,52 @@ class HybridSearchEngine:
         Returns:
             Rerank后的分数
         """
+        # 尝试使用 Cross-Encoder 重排
+        try:
+            from app.services.reranking_service import get_reranking_service
+            from app.core.config import settings
+
+            if settings.RERANK_ENABLED:
+                rerank_service = get_reranking_service(
+                    model_name=settings.RERANK_MODEL,
+                    top_k=50,
+                    threshold=settings.RERANK_THRESHOLD
+                )
+
+                # 构建候选结果
+                candidates = []
+                for memory_id, base_score in scores.items():
+                    row = memory_map.get(memory_id)
+                    if row:
+                        memory = row.Memory
+                        candidates.append({
+                            'memory_id': memory_id,
+                            'title': memory.title or '',
+                            'summary': memory.summary or '',
+                            'content': str(memory.content) if memory.content else '',
+                            'base_score': base_score
+                        })
+
+                # 执行 Cross-Encoder 重排
+                reranked = await rerank_service.rerank(query, candidates, use_cache=True)
+
+                # 提取重排分数（融合原始分数和重排分数）
+                reranked_scores = {}
+                for item in reranked:
+                    memory_id = item['memory_id']
+                    rerank_score = item.get('rerank_score', 0)
+                    base_score = item.get('base_score', 0)
+
+                    # 加权融合：重排分数占 70%，原始分数占 30%
+                    reranked_scores[memory_id] = rerank_score * 0.7 + base_score * 0.3
+
+                logger.info(f"Cross-Encoder rerank: {len(candidates)} -> {len(reranked)} candidates")
+                return reranked_scores
+
+        except Exception as e:
+            logger.warning(f"Cross-Encoder rerank failed, fallback to rule-based: {e}")
+
+        # 回退到规则重排
         reranked_scores = {}
 
         for memory_id, base_score in scores.items():

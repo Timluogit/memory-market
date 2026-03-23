@@ -36,6 +36,15 @@ class Settings:
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
     EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cpu")
 
+    # Cross-Encoder 重排
+    RERANK_ENABLED: bool = os.getenv("RERANK_ENABLED", "true").lower() == "true"
+    RERANK_MODEL: str = os.getenv("RERANK_MODEL", "BAAI/bge-reranker-large")
+    RERANK_TOP_K: int = int(os.getenv("RERANK_TOP_K", "20"))
+    RERANK_THRESHOLD: float = float(os.getenv("RERANK_THRESHOLD", "0.5"))
+    RERANK_CACHE_TTL: int = int(os.getenv("RERANK_CACHE_TTL", "3600"))  # 1小时
+    RERANK_FORCE_CPU: bool = os.getenv("RERANK_FORCE_CPU", "false").lower() == "true"
+    EMBEDDING_MODEL_DIR: str = os.getenv("EMBEDDING_MODEL_DIR", "./models")
+
     # 审计日志
     AUDIT_LOG_ENABLED: bool = os.getenv("AUDIT_LOG_ENABLED", "true").lower() == "true"
     AUDIT_LOG_RETENTION_DAYS: int = int(os.getenv("AUDIT_LOG_RETENTION_DAYS", "90"))

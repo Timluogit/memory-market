@@ -701,3 +701,263 @@ class AnomalyRule(Base):
     __table_args__ = (
         Index('idx_anomaly_rules_type_enabled', 'anomaly_type', 'is_enabled'),
     )
+
+
+# ============ 细粒度权限系统 ============
+
+class Permission(Base):
+    """权限表 - 定义所有权限"""
+    __tablename__ = "permissions"
+
+    permission_id = Column(String(50), primary_key=True, default=lambda: gen_id("perm"))
+
+    # 权限基本信息
+    code = Column(String(100), unique=True, nullable=False, index=True)  # 权限代码，如：memory.create, team.admin
+    name = Column(String(200), nullable=False)  # 权限名称
+    description = Column(Text, nullable=True)  # 权限描述
+    category = Column(String(50), nullable=False, index=True)  # 权限分类：memory/team/user/system
+
+    # 权限层级
+    level = Column(String(20), nullable=False, default="operation")  # operation/resource/system
+    resource_type = Column(String(50), nullable=True, index=True)  # 资源类型：memory/team/agent/transaction
+
+    # 权限状态
+    is_system = Column(Boolean, default=False)  # 是否系统内置权限（不可删除）
+    is_active = Column(Boolean, default=True, index=True)
+
+    # 元数据
+    created_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # 关系
+    created_by = relationship("Agent", foreign_keys=[created_by_agent_id])
+
+    # 索引
+    __table_args__ = (
+        Index('idx_permissions_category_active', 'category', 'is_active'),
+    )
+
+
+class Role(Base):
+    """角色表"""
+    __tablename__ = "roles"
+
+    role_id = Column(String(50), primary_key=True, default=lambda: gen_id("role"))
+
+    # 角色基本信息
+    code = Column(String(100), unique=True, nullable=False, index=True)  # 角色代码，如：admin, user, moderator
+    name = Column(String(200), nullable=False)  # 角色名称
+    description = Column(Text, nullable=True)  # 角色描述
+    category = Column(String(50), nullable=False, index=True)  # 角色分类：system/platform/team
+
+    # 角色层级
+    level = Column(Integer, default=0)  # 角色级别（数字越大权限越高）
+    inherit_from_id = Column(String(50), ForeignKey("roles.role_id"), nullable=True, index=True)  # 继承自哪个角色
+
+    # 角色状态
+    is_system = Column(Boolean, default=False)  # 是否系统内置角色（不可删除）
+    is_active = Column(Boolean, default=True, index=True)
+
+    # 统计
+    member_count = Column(Integer, default=0)  # 拥有此角色的用户数
+
+    # 元数据
+    created_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # 关系
+    created_by = relationship("Agent", foreign_keys=[created_by_agent_id])
+    inherit_from = relationship("Role", remote_side=[role_id], foreign_keys=[inherit_from_id])
+
+    # 索引
+    __table_args__ = (
+        Index('idx_roles_category_active', 'category', 'is_active'),
+        Index('idx_roles_level', 'level'),
+    )
+
+
+class RolePermission(Base):
+    """角色-权限关系表"""
+    __tablename__ = "role_permissions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    role_id = Column(String(50), ForeignKey("roles.role_id"), nullable=False, index=True)
+    permission_id = Column(String(50), ForeignKey("permissions.permission_id"), nullable=False, index=True)
+
+    # 权限限制条件（可选）
+    conditions = Column(JSON, nullable=True)  # 条件限制，如：{"resource_type": "memory", "max_count": 10}
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now())
+
+    # 关系
+    role = relationship("Role")
+    permission = relationship("Permission")
+
+    # 索引和约束
+    __table_args__ = (
+        UniqueConstraint('role_id', 'permission_id', name='uq_role_permission'),
+        Index('idx_role_permissions_role', 'role_id'),
+        Index('idx_role_permissions_permission', 'permission_id'),
+    )
+
+
+class UserPermission(Base):
+    """用户-权限关系表"""
+    __tablename__ = "user_permissions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
+    permission_id = Column(String(50), ForeignKey("permissions.permission_id"), nullable=False, index=True)
+
+    # 权限类型
+    grant_type = Column(String(20), nullable=False, default="allow")  # allow/deny（拒绝优先级更高）
+
+    # 权限范围
+    scope = Column(JSON, nullable=True)  # 权限范围，如：{"memory_ids": ["mem_xxx"], "team_ids": ["team_xxx"]}
+
+    # 有效期
+    expires_at = Column(DateTime, nullable=True)  # 权限过期时间
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now())
+    created_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True)
+
+    # 关系
+    agent = relationship("Agent", foreign_keys=[agent_id])
+    permission = relationship("Permission")
+    created_by = relationship("Agent", foreign_keys=[created_by_agent_id])
+
+    # 索引和约束
+    __table_args__ = (
+        UniqueConstraint('agent_id', 'permission_id', 'scope', name='uq_user_permission_scope'),
+        Index('idx_user_permissions_agent', 'agent_id'),
+        Index('idx_user_permissions_permission', 'permission_id'),
+        Index('idx_user_permissions_agent_active', 'agent_id', 'expires_at'),
+    )
+
+
+class ResourcePermission(Base):
+    """资源-权限关系表"""
+    __tablename__ = "resource_permissions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # 资源信息
+    resource_type = Column(String(50), nullable=False, index=True)  # memory/team/agent/transaction
+    resource_id = Column(String(50), nullable=False, index=True)  # 资源ID
+
+    # 授权对象
+    agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True, index=True)  # 授权给哪个用户
+    role_id = Column(String(50), ForeignKey("roles.role_id"), nullable=True, index=True)  # 授权给哪个角色
+
+    # 权限
+    permission_code = Column(String(100), nullable=False, index=True)  # 权限代码
+
+    # 权限类型
+    grant_type = Column(String(20), nullable=False, default="allow")  # allow/deny
+
+    # 权限条件
+    conditions = Column(JSON, nullable=True)  # 条件限制
+
+    # 有效期
+    expires_at = Column(DateTime, nullable=True)
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now())
+    created_by_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=True)
+
+    # 关系
+    agent = relationship("Agent", foreign_keys=[agent_id])
+    role = relationship("Role", foreign_keys=[role_id])
+    created_by = relationship("Agent", foreign_keys=[created_by_agent_id])
+
+    # 索引
+    __table_args__ = (
+        Index('idx_resource_permissions_resource', 'resource_type', 'resource_id'),
+        Index('idx_resource_permissions_agent', 'agent_id'),
+        Index('idx_resource_permissions_role', 'role_id'),
+        Index('idx_resource_permissions_permission', 'permission_code'),
+        Index('idx_resource_permissions_resource_agent', 'resource_type', 'resource_id', 'agent_id'),
+    )
+
+
+class PermissionCache(Base):
+    """权限缓存表 - 用于快速权限检查"""
+    __tablename__ = "permission_cache"
+
+    cache_id = Column(String(50), primary_key=True, default=lambda: gen_id("pcache"))
+
+    # 缓存键
+    agent_id = Column(String(50), nullable=False, index=True)
+    cache_key = Column(String(200), unique=True, nullable=False, index=True)  # 缓存键，如：agent_perm_xxx
+
+    # 缓存内容
+    permissions = Column(JSON, nullable=False)  # 权限列表
+    roles = Column(JSON, nullable=False)  # 角色列表
+
+    # 缓存元数据
+    version = Column(Integer, default=1)  # 版本号（用于失效）
+    hit_count = Column(Integer, default=0)  # 命中次数
+
+    # 时间戳
+    expires_at = Column(DateTime, nullable=False, index=True)  # 过期时间
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # 索引
+    __table_args__ = (
+        Index('idx_permission_cache_agent', 'agent_id', 'expires_at'),
+    )
+
+
+class PermissionAuditLog(Base):
+    """权限操作审计日志表"""
+    __tablename__ = "permission_audit_logs"
+
+    log_id = Column(String(50), primary_key=True, default=lambda: gen_id("paudit"))
+
+    # 操作者
+    actor_agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
+    actor_name = Column(String(100), nullable=False)
+
+    # 操作类型
+    action_type = Column(String(50), nullable=False, index=True)  # grant/revoke/check
+    action_category = Column(String(50), nullable=False, index=True)  # permission/role/user/resource
+
+    # 操作对象
+    target_type = Column(String(50), nullable=True, index=True)  # agent/role/permission/resource
+    target_id = Column(String(50), nullable=True, index=True)
+    target_name = Column(String(200), nullable=True)
+
+    # 权限详情
+    permission_code = Column(String(100), nullable=True, index=True)
+    resource_type = Column(String(50), nullable=True)
+    resource_id = Column(String(50), nullable=True)
+
+    # 操作结果
+    status = Column(String(20), nullable=False, index=True)  # success/forbidden/not_found/error
+    status_code = Column(Integer, nullable=True)
+    error_message = Column(Text, nullable=True)
+
+    # 详细信息
+    request_data = Column(JSON, nullable=True)
+    response_data = Column(JSON, nullable=True)
+    extra_data = Column(JSON, nullable=True)
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+    # 关系
+    actor = relationship("Agent", foreign_keys=[actor_agent_id])
+
+    # 索引
+    __table_args__ = (
+        Index('idx_permission_audit_actor_action', 'actor_agent_id', 'action_type'),
+        Index('idx_permission_audit_target', 'target_type', 'target_id'),
+        Index('idx_permission_audit_permission', 'permission_code'),
+        Index('idx_permission_audit_time_range', 'created_at', 'action_type'),
+    )
