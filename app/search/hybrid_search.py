@@ -1,12 +1,15 @@
 """混合搜索引擎
 
 结合向量搜索和关键词搜索，提供更精准的检索结果
+支持基于用户画像的个性化搜索
 """
 from typing import List, Dict, Tuple, Optional, Set, Any
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.tables import Memory, Agent
 from app.search.qdrant_engine import get_qdrant_engine
+from app.services.user_profile_service import get_profile_service
+from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -431,6 +434,181 @@ class HybridSearchEngine:
             reranked_scores[memory_id] = reranked_score
 
         return reranked_scores
+
+    async def personalized_search(
+        self,
+        db: AsyncSession,
+        query: str,
+        agent_id: str,
+        base_stmt,
+        search_type: str = "hybrid",
+        top_k: int = 50,
+        min_score: float = 0.1,
+        semantic_weight: float = 0.6,
+        keyword_weight: float = 0.4,
+        enable_rerank: bool = True,
+        page: int = 1,
+        page_size: int = 10,
+        sort_by: str = "relevance"
+    ):
+        """个性化搜索：基于用户画像优化搜索结果
+
+        Args:
+            db: 数据库会话
+            query: 搜索查询
+            agent_id: 用户ID
+            base_stmt: 基础 SQL 查询
+            search_type: 搜索类型 (vector/keyword/hybrid)
+            top_k: 返回前 k 个结果
+            min_score: 最小相似度阈值
+            semantic_weight: 向量搜索权重
+            keyword_weight: 关键词搜索权重
+            enable_rerank: 是否启用 Rerank
+            page: 页码
+            page_size: 每页数量
+            sort_by: 排序方式
+
+        Returns:
+            记忆列表
+        """
+        if not settings.PROFILE_ENABLED:
+            # 如果画像系统未启用，回退到普通搜索
+            return await self.search(
+                db, query, base_stmt, search_type, top_k, min_score,
+                semantic_weight, keyword_weight, enable_rerank, page, page_size, sort_by
+            )
+
+        # 1. 执行基础搜索
+        results = await self.search(
+            db, query, base_stmt, search_type, top_k, min_score,
+            semantic_weight, keyword_weight, enable_rerank, page, page_size, sort_by
+        )
+
+        # 2. 获取用户画像
+        profile_service = get_profile_service()
+        user_profile = await profile_service.get_profile(db, agent_id, use_cache=True)
+
+        if not user_profile:
+            # 无画像数据，直接返回搜索结果
+            return results
+
+        # 3. 应用画像个性化
+        personalized_results = await self._apply_profile_personalization(
+            db, results, user_profile, query, agent_id
+        )
+
+        return personalized_results
+
+    async def _apply_profile_personalization(
+        self,
+        db: AsyncSession,
+        results,
+        user_profile: Dict[str, Any],
+        query: str,
+        agent_id: str
+    ):
+        """应用用户画像个性化搜索结果
+
+        Args:
+            db: 数据库会话
+            results: 搜索结果
+            user_profile: 用户画像
+            query: 搜索查询
+            agent_id: 用户ID
+
+        Returns:
+            个性化后的结果
+        """
+        personalized_items = []
+
+        # 提取画像特征
+        user_language = user_profile.get('language', 'zh')
+        user_interests = user_profile.get('interests', []) or []
+        user_research_areas = user_profile.get('research_areas', []) or []
+        user_skills = user_profile.get('skills', []) or []
+        user_tech_stack = user_profile.get('tech_stack', []) or []
+        user_preferred_topics = user_interests + user_research_areas
+
+        for item in results.items:
+            memory = item.__dict__ if hasattr(item, '__dict__') else item
+            if isinstance(memory, dict):
+                memory_dict = memory
+            else:
+                continue
+
+            # 计算个性化得分
+            personalization_score = 0.0
+
+            # 1. 语言匹配（中文/英文）
+            title = memory_dict.get('title', '')
+            summary = memory_dict.get('summary', '')
+            content_text = f"{title} {summary}"
+
+            if user_language == 'zh':
+                # 中文用户偏好中文内容
+                has_chinese = any('\u4e00' <= char <= '\u9fff' for char in content_text)
+                if has_chinese:
+                    personalization_score += 0.1
+            elif user_language == 'en':
+                # 英文用户偏好英文内容
+                has_english = content_text.strip() and content_text[0].isascii()
+                if has_english:
+                    personalization_score += 0.1
+
+            # 2. 兴趣匹配
+            category = memory_dict.get('category', '')
+            tags = memory_dict.get('tags', []) or []
+
+            for interest in user_preferred_topics:
+                interest_lower = interest.lower()
+                if interest_lower in category.lower():
+                    personalization_score += 0.2
+                for tag in tags:
+                    if interest_lower in tag.lower():
+                        personalization_score += 0.15
+                        break
+
+            # 3. 技术栈匹配
+            for skill in user_skills + user_tech_stack:
+                skill_name = skill.get('name') if isinstance(skill, dict) else skill
+                skill_lower = skill_name.lower()
+                if skill_lower in content_text.lower():
+                    personalization_score += 0.1
+
+            # 4. 编辑器偏好（对于编程相关记忆）
+            user_editor = user_profile.get('editor', '').lower()
+            if user_editor and ('editor' in content_text.lower() or 'ide' in content_text.lower()):
+                if user_editor in content_text.lower():
+                    personalization_score += 0.15
+
+            # 5. 主题偏好（对于UI/设计相关记忆）
+            user_theme = user_profile.get('theme', '').lower()
+            if user_theme and ('theme' in content_text.lower() or 'design' in content_text.lower()):
+                if user_theme in content_text.lower():
+                    personalization_score += 0.1
+
+            # 更新排序权重（结合原有排序和个性化得分）
+            # 假设原有结果有某种 relevance_score，否则使用默认
+            base_relevance = getattr(item, 'relevance_score', 0.5) if hasattr(item, 'relevance_score') else 0.5
+            final_score = base_relevance * 0.8 + personalization_score * 0.2
+
+            # 添加个性化得分到结果
+            if hasattr(item, 'personalization_score'):
+                item.personalization_score = personalization_score
+                item.final_score = final_score
+
+            personalized_items.append(item)
+
+        # 按最终得分重新排序
+        personalized_items.sort(
+            key=lambda x: getattr(x, 'final_score', 0.5),
+            reverse=True
+        )
+
+        # 更新返回结果
+        results.items = personalized_items
+
+        return results
 
     async def _execute_base_search(
         self,

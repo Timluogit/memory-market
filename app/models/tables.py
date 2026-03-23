@@ -961,3 +961,178 @@ class PermissionAuditLog(Base):
         Index('idx_permission_audit_permission', 'permission_code'),
         Index('idx_permission_audit_time_range', 'created_at', 'action_type'),
     )
+
+
+# ============ 用户画像系统 ============
+
+class UserProfile(Base):
+    """用户画像表（静态事实层）"""
+    __tablename__ = "user_profiles"
+
+    profile_id = Column(String(50), primary_key=True, default=lambda: gen_id("uprof"))
+
+    # 关联用户
+    agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, unique=True, index=True)
+
+    # 个人信息
+    real_name = Column(String(100), nullable=True)  # 真实姓名
+    job_title = Column(String(100), nullable=True)  # 职位
+    company = Column(String(200), nullable=True)  # 公司
+    location = Column(String(200), nullable=True)  # 地点
+    timezone = Column(String(50), nullable=True)  # 时区
+
+    # 偏好
+    language = Column(String(20), default="zh")  # 首选语言
+    editor = Column(String(50), nullable=True)  # 编辑器偏好（VSCode/Vim/Emacs）
+    theme = Column(String(20), default="dark")  # 主题偏好（light/dark）
+    ui_scale = Column(String(20), default="medium")  # UI缩放（small/medium/large）
+
+    # 习惯
+    work_hours = Column(JSON, nullable=True)  # 工作时间 {"start": "09:00", "end": "18:00"}
+    work_days = Column(JSON, nullable=True)  # 工作日 ["Monday", "Tuesday", ...]
+    preferred_command = Column(String(100), nullable=True)  # 常用命令前缀
+
+    # 技能
+    skills = Column(JSON, nullable=True)  # 编程语言和框架 [{"name": "Python", "level": "advanced"}, ...]
+    tech_stack = Column(JSON, nullable=True)  # 技术栈 ["Python", "FastAPI", "PostgreSQL"]
+
+    # 兴趣
+    interests = Column(JSON, nullable=True)  # 兴趣领域 ["AI", "Machine Learning", "NLP"]
+    research_areas = Column(JSON, nullable=True)  # 研究方向 ["NLP", "LLM", "RAG"]
+
+    # 统计
+    confidence_score = Column(Float, default=0.5)  # 画像可信度（基于自动提取质量）
+    completeness_score = Column(Float, default=0.0)  # 画像完整度（字段填充率）
+    last_updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, server_default=func.now())
+
+    # 关系
+    agent = relationship("Agent")
+    facts = relationship("ProfileFact", back_populates="profile", cascade="all, delete-orphan")
+    changes = relationship("ProfileChange", back_populates="profile", cascade="all, delete-orphan")
+
+    # 索引
+    __table_args__ = (
+        Index('idx_user_profiles_agent', 'agent_id'),
+        Index('idx_user_profiles_updated', 'last_updated_at'),
+    )
+
+
+class ProfileFact(Base):
+    """画像事实表（结构化的事实存储）"""
+    __tablename__ = "profile_facts"
+
+    fact_id = Column(String(50), primary_key=True, default=lambda: gen_id("fact"))
+
+    # 关联画像
+    profile_id = Column(String(50), ForeignKey("user_profiles.profile_id"), nullable=False, index=True)
+    agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
+
+    # 事实内容
+    fact_type = Column(String(50), nullable=False, index=True)  # personal/preference/habit/skill/interest
+    fact_key = Column(String(100), nullable=False, index=True)  # 事实键（如：language/editor）
+    fact_value = Column(JSON, nullable=False)  # 事实值（可以是字符串、数字、数组等）
+    confidence = Column(Float, default=0.8)  # 置信度（0-1）
+    source = Column(String(50), nullable=True)  # 来源（manual/auto_extraction）
+    source_reference = Column(String(200), nullable=True)  # 来源引用（对话ID等）
+
+    # 过期控制
+    expires_at = Column(DateTime, nullable=True)  # 过期时间（用于自动遗忘）
+    is_valid = Column(Boolean, default=True, index=True)  # 是否有效
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # 关系
+    profile = relationship("UserProfile", back_populates="facts")
+    agent = relationship("Agent")
+
+    # 索引
+    __table_args__ = (
+        Index('idx_profile_facts_profile_type', 'profile_id', 'fact_type'),
+        Index('idx_profile_facts_agent_valid', 'agent_id', 'is_valid'),
+        Index('idx_profile_facts_expires', 'expires_at', 'is_valid'),
+    )
+
+
+class UserDynamicContext(Base):
+    """用户动态上下文表（动态上下文层）"""
+    __tablename__ = "user_dynamic_contexts"
+
+    context_id = Column(String(50), primary_key=True, default=lambda: gen_id("ucont"))
+
+    # 关联用户
+    agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
+
+    # 动态上下文
+    current_task = Column(String(200), nullable=True)  # 当前任务
+    current_project = Column(String(200), nullable=True)  # 当前项目
+    current_focus = Column(String(200), nullable=True)  # 当前关注点
+
+    # 工作状态
+    work_state = Column(String(50), default="active")  # active/away/busy/offline
+    recent_activities = Column(JSON, nullable=True)  # 最近活动 [{"type": "search", "query": "...", "timestamp": ...}, ...]
+
+    # 会话信息
+    last_session_id = Column(String(100), nullable=True)  # 最后会话ID
+    last_search_query = Column(Text, nullable=True)  # 最后搜索查询
+    last_interacted_memory = Column(String(50), nullable=True)  # 最后交互的记忆
+
+    # 推荐信息
+    recommended_categories = Column(JSON, nullable=True)  # 推荐分类
+    suggested_topics = Column(JSON, nullable=True)  # 建议主题
+
+    # 统计
+    session_count_today = Column(Integer, default=0)  # 今日会话数
+    search_count_today = Column(Integer, default=0)  # 今日搜索数
+    last_updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, server_default=func.now())
+
+    # 关系
+    agent = relationship("Agent")
+
+    # 索引
+    __table_args__ = (
+        Index('idx_user_dynamic_contexts_agent', 'agent_id'),
+        Index('idx_user_dynamic_contexts_updated', 'last_updated_at'),
+        Index('idx_user_dynamic_contexts_work_state', 'agent_id', 'work_state'),
+    )
+
+
+class ProfileChange(Base):
+    """画像变更历史表"""
+    __tablename__ = "profile_changes"
+
+    change_id = Column(String(50), primary_key=True, default=lambda: gen_id("pchange"))
+
+    # 关联画像
+    profile_id = Column(String(50), ForeignKey("user_profiles.profile_id"), nullable=False, index=True)
+    agent_id = Column(String(50), ForeignKey("agents.agent_id"), nullable=False, index=True)
+
+    # 变更信息
+    change_type = Column(String(50), nullable=False, index=True)  # created/updated/deleted/expired
+    field_name = Column(String(100), nullable=False, index=True)  # 变更字段
+    old_value = Column(JSON, nullable=True)  # 旧值
+    new_value = Column(JSON, nullable=True)  # 新值
+
+    # 变更来源
+    source = Column(String(50), nullable=False)  # manual/auto_extraction/auto_forget
+    source_reference = Column(String(200), nullable=True)  # 来源引用
+
+    # 变更原因
+    change_reason = Column(Text, nullable=True)  # 变更原因
+
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+    # 关系
+    profile = relationship("UserProfile", back_populates="changes")
+    agent = relationship("Agent")
+
+    # 索引
+    __table_args__ = (
+        Index('idx_profile_changes_profile', 'profile_id', 'created_at'),
+        Index('idx_profile_changes_agent', 'agent_id', 'created_at'),
+        Index('idx_profile_changes_type_field', 'change_type', 'field_name'),
+    )

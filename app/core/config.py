@@ -66,4 +66,13 @@ class Settings:
     CACHE_DELAY_SECONDS: int = int(os.getenv("CACHE_DELAY_SECONDS", "5"))
     CACHE_MAX_MEMORY: str = os.getenv("CACHE_MAX_MEMORY", "2gb")
 
+    # 用户画像系统
+    PROFILE_ENABLED: bool = os.getenv("PROFILE_ENABLED", "true").lower() == "true"
+    PROFILE_AUTO_EXTRACTION: bool = os.getenv("PROFILE_AUTO_EXTRACTION", "true").lower() == "true"
+    PROFILE_MIN_CONFIDENCE: float = float(os.getenv("PROFILE_MIN_CONFIDENCE", "0.6"))  # 自动提取最小置信度
+    PROFILE_CACHE_TTL: int = int(os.getenv("PROFILE_CACHE_TTL", "300"))  # 5分钟缓存
+    PROFILE_AUTO_FORGET_DAYS: int = int(os.getenv("PROFILE_AUTO_FORGET_DAYS", "30"))  # 自动遗忘天数
+    PROFILE_EXTRACTION_MODEL: str = os.getenv("PROFILE_EXTRACTION_MODEL", "gpt-4o-mini")  # 画像提取模型
+    PROFILE_MAX_FIELDS: int = int(os.getenv("PROFILE_MAX_FIELDS", "30"))  # 最大字段数
+
 settings = Settings()
